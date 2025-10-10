@@ -87,19 +87,6 @@ class LoanController extends Controller
     {
         $user = $request->user();
 
-        $existingLoan = Loan::where('book_id', $book->id)
-            ->whereNull('returned_at')
-            ->first();
-
-        if ($existingLoan) {
-            return response()->json([
-                'message' => 'This book is already borrowed and not returned yet.',
-                'errors' => [
-                    'book_id' => ['This book is already borrowed and not returned yet.']
-                ]
-            ], 422);
-        }
-
         $loan = Loan::create([
             'user_id' => $user->id,
             'book_id' => $book->id,

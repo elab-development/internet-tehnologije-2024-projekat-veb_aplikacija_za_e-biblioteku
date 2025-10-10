@@ -1,3 +1,5 @@
+<?php
+
 namespace App\Providers;
 
 use Illuminate\Auth\Notifications\ResetPassword;
