@@ -35,6 +35,16 @@ class Book extends Model
         'deleted_at' => 'datetime',
     ];
 
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'pdf_path',
+        'pdf_url',
+    ];
+
     public function getCoverUrlAttribute(): ?string
     {
         return $this->cover_path ? asset('storage/' . $this->cover_path) : null;

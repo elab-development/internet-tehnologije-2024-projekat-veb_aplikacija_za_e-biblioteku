@@ -20,9 +20,9 @@ Route::prefix('v1')->group(function () {
     
     Route::get('/books', [BookController::class, 'index']);
     Route::get('/books/search', [BookController::class, 'search']);
-    Route::get('/books/{book}', [BookController::class, 'show']);
     
     Route::middleware(['auth:sanctum'])->group(function () {
+        Route::get('/books/{book}', [BookController::class, 'show']);
         Route::get('/user', [ApiAuthController::class, 'user']);
         Route::post('/logout', [ApiAuthController::class, 'logout']);
         
@@ -38,6 +38,14 @@ Route::prefix('v1')->group(function () {
             Route::post('/books/{book}/pdf', [BookController::class, 'uploadPdf']);
         });
         
-        Route::get('/books/{book}/pdf', [BookController::class, 'downloadPdf']);
+
+        Route::get('/books/{book}/read', [BookController::class, 'readBook'])
+            ->middleware(['subscription', 'throttle:5,1']); //5 zahteva po minutu
+        
+        Route::get('/books/{book}/preview', [BookController::class, 'previewBook'])
+            ->middleware(['throttle:10,1']); //10 zahteva
+        
+        Route::get('/books/{book}/page', [BookController::class, 'readBookPage'])
+            ->middleware(['throttle:20,1']); //20 zahteva
     });
 });

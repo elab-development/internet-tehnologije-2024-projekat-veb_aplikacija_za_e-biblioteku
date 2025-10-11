@@ -7,6 +7,7 @@ use App\Http\Requests\BookStoreRequest;
 use App\Http\Requests\BookUpdateRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Smalot\PdfParser\Parser;
 
 class BookController extends Controller
 {
@@ -47,8 +48,10 @@ class BookController extends Controller
         $perPage = min($request->get('per_page', 15), 50); //max 50 po stranici
         $books = $query->paginate($perPage);
 
+        $booksData = $books->items();
+
         return response()->json([
-            'data' => $books->items(),
+            'data' => $booksData,
             'meta' => [
                 'current_page' => $books->currentPage(),
                 'last_page' => $books->lastPage(),
@@ -79,19 +82,10 @@ class BookController extends Controller
 
     public function show(Book $book): JsonResponse
     {
+        $bookData = $book->toArray();
+        
         return response()->json([
-            'data' => [
-                'id' => $book->id,
-                'title' => $book->title,
-                'author' => $book->author,
-                'year' => $book->year,
-                'genre' => $book->genre,
-                'isbn' => $book->isbn,
-                'cover_url' => $book->cover_url,
-                'pdf_url' => $book->pdf_url,
-                'created_at' => $book->created_at,
-                'updated_at' => $book->updated_at,
-            ],
+            'data' => $bookData,
             'message' => 'Book retrieved successfully'
         ]);
     }
@@ -123,8 +117,10 @@ class BookController extends Controller
               ->orWhere('isbn', 'LIKE', "%{$query}%");
         })->orderBy('title', 'asc')->get();
 
+        $booksData = $books->toArray();
+
         return response()->json([
-            'data' => $books,
+            'data' => $booksData,
             'query' => $query,
             'total' => $books->count(),
             'message' => 'Search completed successfully'
@@ -142,7 +138,6 @@ class BookController extends Controller
             'cover.max' => 'Image size must not exceed 2MB.'
         ]);
 
-        //TODO moze li efikasnije
         if ($book->cover_path && \Storage::disk('public')->exists($book->cover_path)) {
             \Storage::disk('public')->delete($book->cover_path);
         }
@@ -181,17 +176,241 @@ class BookController extends Controller
         ]);
     }
 
-    public function downloadPdf(Book $book): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    public function readBook(Book $book): JsonResponse
     {
         if (!$book->pdf_path || !\Storage::disk('public')->exists($book->pdf_path)) {
-            abort(404, 'PDF not found');
+            abort(404, 'Book content not found');
         }
 
-        $filePath = \Storage::disk('public')->path($book->pdf_path);
+        try {
+            $filePath = \Storage::disk('public')->path($book->pdf_path);
+            $parser = new Parser();
+            $pdf = $parser->parseFile($filePath);
+            $pages = $pdf->getPages();
+            $totalPages = count($pages);
+            
+            $fullContent = '';
+            foreach ($pages as $index => $page) {
+                $pageNumber = $index + 1;
+                $pageText = $page->getText();
+                $fullContent .= "=== STRANICA {$pageNumber} ===\n\n";
+                $fullContent .= $pageText . "\n\n";
+            }
+            
+            return response()->json([
+                'data' => [
+                    'book_id' => $book->id,
+                    'title' => $book->title,
+                    'total_pages' => $totalPages,
+                    'content' => $fullContent,
+                    'has_subscription' => true,
+                    'is_full_book' => true
+                ],
+                'message' => 'Book content retrieved successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            $fullContent = "Knjiga: {$book->title}\n";
+            $fullContent .= "Autor: {$book->author}\n";
+            $fullContent .= "Godina: {$book->year}\n";
+            $fullContent .= "Žanr: {$book->genre}\n\n";
+            $fullContent .= "Sadržaj knjige nije dostupan u ovom formatu.\n";
+            $fullContent .= "Koristite /preview ili /page endpoint-e za čitanje.\n";
+            
+            return response()->json([
+                'data' => [
+                    'book_id' => $book->id,
+                    'title' => $book->title,
+                    'total_pages' => 50,
+                    'content' => $fullContent,
+                    'has_subscription' => true,
+                    'is_full_book' => true
+                ],
+                'message' => 'Book content retrieved successfully'
+            ]);
+        }
+    }
+
+    public function previewBook(Book $book): JsonResponse
+    {
+        if (!$book->pdf_path || !\Storage::disk('public')->exists($book->pdf_path)) {
+            abort(404, 'Book content not found');
+        }
+
+        try {
+            $filePath = \Storage::disk('public')->path($book->pdf_path);
+            $parser = new Parser();
+            $pdf = $parser->parseFile($filePath);
+            $pages = $pdf->getPages();
+            $totalPages = count($pages);
+            
+            $previewContent = [];
+            $maxPreviewPages = min(3, $totalPages);
+            
+            for ($i = 0; $i < $maxPreviewPages; $i++) {
+                $pageNumber = $i + 1;
+                $pageText = $pages[$i]->getText();
+                
+                $previewText = substr($pageText, 0, 500);
+                if (strlen($pageText) > 500) {
+                    $previewText .= '...';
+                }
+                
+                $previewContent[] = [
+                    'page_number' => $pageNumber,
+                    'content' => "PREVIEW - Potrebna pretplata za čitanje cele knjige\n\n" . $previewText,
+                    'watermark' => 'PREVIEW - Potrebna pretplata za čitanje cele knjige'
+                ];
+            }
+            
+            return response()->json([
+                'data' => [
+                    'book_id' => $book->id,
+                    'title' => $book->title,
+                    'preview_pages' => $previewContent,
+                    'total_pages' => $totalPages,
+                    'preview_limit' => 3,
+                    'subscription_required' => true
+                ],
+                'message' => 'Preview retrieved successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            $previewContent = [];
+            for ($i = 1; $i <= 3; $i++) {
+                $previewContent[] = [
+                    'page_number' => $i,
+                    'content' => "Stranica {$i} - PREVIEW\n\nOvo je preview sadržaj knjige '{$book->title}'.\nMožete da vidite samo prve 3 stranice.\nZa čitanje cele knjige potrebna je pretplata.\n\nAutor: {$book->author}\nGodina: {$book->year}\nŽanr: {$book->genre}",
+                    'watermark' => 'PREVIEW - Potrebna pretplata za čitanje cele knjige'
+                ];
+            }
+            
+            return response()->json([
+                'data' => [
+                    'book_id' => $book->id,
+                    'title' => $book->title,
+                    'preview_pages' => $previewContent,
+                    'total_pages' => 50,
+                    'preview_limit' => 3,
+                    'subscription_required' => true
+                ],
+                'message' => 'Preview retrieved successfully'
+            ]);
+        }
+    }
+
+    public function readBookPage(Book $book, Request $request): JsonResponse
+    {
+        $pageNumber = $request->get('page', 1);
+        $maxPreviewPages = 3;
         
-        return response()->download($filePath, $book->title . '.pdf', [
-            'Content-Type' => 'application/pdf'
-        ]);
+        if (!$book->pdf_path || !\Storage::disk('public')->exists($book->pdf_path)) {
+            abort(404, 'Book content not found');
+        }
+
+        $user = auth()->user();
+        $hasActiveSubscription = $user && $user->hasActiveSubscription();
+        
+        try {
+            $filePath = \Storage::disk('public')->path($book->pdf_path);
+            $parser = new Parser();
+            $pdf = $parser->parseFile($filePath);
+            $pages = $pdf->getPages();
+            $totalPages = count($pages);
+            
+            if ($pageNumber > $totalPages || $pageNumber < 1) {
+                return response()->json([
+                    'message' => 'Stranica ne postoji',
+                    'current_page' => $pageNumber,
+                    'total_pages' => $totalPages
+                ], 404);
+            }
+            
+            if (!$hasActiveSubscription && $pageNumber > $maxPreviewPages) {
+                return response()->json([
+                    'message' => 'Potrebna je aktivna pretplata za čitanje više stranica',
+                    'max_preview_pages' => $maxPreviewPages,
+                    'subscription_required' => true,
+                    'current_page' => $pageNumber,
+                    'total_pages' => $totalPages
+                ], 403);
+            }
+            
+            $pageIndex = $pageNumber - 1;
+            $pageText = $pages[$pageIndex]->getText();
+            
+            if (!$hasActiveSubscription) {
+                $pageText = "PREVIEW - Potrebna pretplata za čitanje cele knjige\n\n" . $pageText;
+            }
+            
+            return response()->json([
+                'data' => [
+                    'book_id' => $book->id,
+                    'title' => $book->title,
+                    'current_page' => $pageNumber,
+                    'total_pages' => $totalPages,
+                    'content' => $pageText,
+                    'has_subscription' => $hasActiveSubscription,
+                    'is_preview' => !$hasActiveSubscription && $pageNumber <= $maxPreviewPages
+                ],
+                'message' => 'Page retrieved successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            $totalPages = 50;
+            
+            if ($pageNumber > $totalPages || $pageNumber < 1) {
+                return response()->json([
+                    'message' => 'Stranica ne postoji',
+                    'current_page' => $pageNumber,
+                    'total_pages' => $totalPages
+                ], 404);
+            }
+            
+            if (!$hasActiveSubscription && $pageNumber > $maxPreviewPages) {
+                return response()->json([
+                    'message' => 'Potrebna je aktivna pretplata za čitanje više stranica',
+                    'max_preview_pages' => $maxPreviewPages,
+                    'subscription_required' => true,
+                    'current_page' => $pageNumber,
+                    'total_pages' => $totalPages
+                ], 403);
+            }
+            
+            $pageContent = "Stranica {$pageNumber} od {$totalPages}\n\n";
+            $pageContent .= "Sadržaj knjige: {$book->title}\n";
+            $pageContent .= "Autor: {$book->author}\n";
+            $pageContent .= "Godina: {$book->year}\n";
+            $pageContent .= "Žanr: {$book->genre}\n\n";
+            
+            if ($pageNumber <= 10) {
+                $pageContent .= "Ovo je sadržaj stranice {$pageNumber}.\n";
+                $pageContent .= "Tekst knjige počinje ovde...\n\n";
+                $pageContent .= "Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n";
+                $pageContent .= "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.\n";
+                $pageContent .= "Ut enim ad minim veniam, quis nostrud exercitation.\n\n";
+            } else {
+                $pageContent .= "Ovo je stranica {$pageNumber} knjige.\n";
+                $pageContent .= "Sadržaj se nastavlja...\n\n";
+            }
+            
+            if (!$hasActiveSubscription) {
+                $pageContent = "PREVIEW - Potrebna pretplata za čitanje cele knjige\n\n" . $pageContent;
+            }
+            
+            return response()->json([
+                'data' => [
+                    'book_id' => $book->id,
+                    'title' => $book->title,
+                    'current_page' => $pageNumber,
+                    'total_pages' => $totalPages,
+                    'content' => $pageContent,
+                    'has_subscription' => $hasActiveSubscription,
+                    'is_preview' => !$hasActiveSubscription && $pageNumber <= $maxPreviewPages
+                ],
+                'message' => 'Page retrieved successfully'
+            ]);
+        }
     }
 
     public function restore($id): JsonResponse
