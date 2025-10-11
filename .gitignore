@@ -4,3 +4,5 @@ POSTMAN_TESTING_GUIDE.md
 
 # Documentation
 APP_DOCUMENTATION.md
+src/tests/Feature/CachingTest.php
+src/tests/Feature/RateLimitingTest.php

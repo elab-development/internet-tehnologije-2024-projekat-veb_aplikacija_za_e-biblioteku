@@ -19,7 +19,8 @@ Route::prefix('v1')->group(function () {
     Route::post('/login', [ApiAuthController::class, 'login']);
     
     Route::get('/books', [BookController::class, 'index']);
-    Route::get('/books/search', [BookController::class, 'search']);
+    Route::get('/books/search', [BookController::class, 'search'])
+        ->middleware(['throttle:30,1']);
     
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/books/{book}', [BookController::class, 'show']);
@@ -34,8 +35,10 @@ Route::prefix('v1')->group(function () {
         
         Route::middleware(['admin'])->group(function () {
             Route::put('/books/{book}/restore', [BookController::class, 'restore']);
-            Route::post('/books/{book}/cover', [BookController::class, 'uploadCover']);
-            Route::post('/books/{book}/pdf', [BookController::class, 'uploadPdf']);
+            Route::post('/books/{book}/cover', [BookController::class, 'uploadCover'])
+                ->middleware(['throttle:10,1']);
+            Route::post('/books/{book}/pdf', [BookController::class, 'uploadPdf'])
+                ->middleware(['throttle:5,1']);
         });
         
 
