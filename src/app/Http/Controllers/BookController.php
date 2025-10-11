@@ -450,6 +450,72 @@ class BookController extends Controller
         ]);
     }
 
+    public function exportCsv(Request $request)
+    {
+        $query = Book::query();
+
+        if ($request->has('q') && !empty($request->q)) {
+            $searchTerm = $request->q;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('author', 'LIKE', "%{$searchTerm}%");
+            });
+        }
+
+        if ($request->has('genre') && !empty($request->genre)) {
+            $query->where('genre', $request->genre);
+        }
+
+        if ($request->has('year_from')) {
+            $query->where('year', '>=', $request->year_from);
+        }
+
+        if ($request->has('year_to')) {
+            $query->where('year', '<=', $request->year_to);
+        }
+
+        $books = $query->orderBy('title', 'asc')->get();
+
+        $filename = 'books_export_' . now()->format('Y-m-d_H-i-s') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function() use ($books) {
+            $file = fopen('php://output', 'w');
+            
+            fputcsv($file, [
+                'ID',
+                'Title',
+                'Author', 
+                'Year',
+                'Genre',
+                'ISBN',
+                'Created At',
+                'Updated At'
+            ]);
+
+            foreach ($books as $book) {
+                fputcsv($file, [
+                    $book->id,
+                    $book->title,
+                    $book->author,
+                    $book->year,
+                    $book->genre,
+                    $book->isbn,
+                    $book->created_at->format('Y-m-d H:i:s'),
+                    $book->updated_at->format('Y-m-d H:i:s')
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
     private function generateCacheKey(Request $request): string
     {
         $params = [

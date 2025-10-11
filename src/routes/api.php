@@ -23,23 +23,25 @@ Route::prefix('v1')->group(function () {
         ->middleware(['throttle:30,1']);
     
     Route::middleware(['auth:sanctum'])->group(function () {
-        Route::get('/books/{book}', [BookController::class, 'show']);
         Route::get('/user', [ApiAuthController::class, 'user']);
         Route::post('/logout', [ApiAuthController::class, 'logout']);
         
-        Route::apiResource('books', BookController::class)->except(['index', 'show']);
-        
-        Route::apiResource('loans', LoanController::class)->only(['index', 'store', 'show', 'update']);
-        Route::post('/loans/{book}/borrow', [LoanController::class, 'borrow']);
-        Route::post('/loans/{loan}/return', [LoanController::class, 'return']);
-        
         Route::middleware(['admin'])->group(function () {
+            Route::get('/books/export', [BookController::class, 'exportCsv'])
+                ->middleware(['throttle:5,1']);
             Route::put('/books/{book}/restore', [BookController::class, 'restore']);
             Route::post('/books/{book}/cover', [BookController::class, 'uploadCover'])
                 ->middleware(['throttle:10,1']);
             Route::post('/books/{book}/pdf', [BookController::class, 'uploadPdf'])
                 ->middleware(['throttle:5,1']);
         });
+        
+        Route::get('/books/{book}', [BookController::class, 'show']);
+        Route::apiResource('books', BookController::class)->except(['index', 'show']);
+        
+        Route::apiResource('loans', LoanController::class)->only(['index', 'store', 'show', 'update']);
+        Route::post('/loans/{book}/borrow', [LoanController::class, 'borrow']);
+        Route::post('/loans/{loan}/return', [LoanController::class, 'return']);
         
 
         Route::get('/books/{book}/read', [BookController::class, 'readBook'])
