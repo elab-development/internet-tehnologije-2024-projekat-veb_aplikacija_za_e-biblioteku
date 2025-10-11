@@ -7,72 +7,78 @@ use App\Http\Requests\BookStoreRequest;
 use App\Http\Requests\BookUpdateRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Smalot\PdfParser\Parser;
 
 class BookController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Book::query();
+        $cacheKey = $this->generateCacheKey($request);
+        
+        return Cache::remember($cacheKey, 300, function () use ($request) {
+            $query = Book::query();
 
-        if ($request->has('q') && !empty($request->q)) {
-            $searchTerm = $request->q;
-            $query->where(function ($q) use ($searchTerm) {
-                $q->where('title', 'LIKE', "%{$searchTerm}%")
-                  ->orWhere('author', 'LIKE', "%{$searchTerm}%");
-            });
-        }
-
-        if ($request->has('genre') && !empty($request->genre)) {
-            $query->where('genre', $request->genre);
-        }
-
-        if ($request->has('sort')) {
-            $sortFields = explode(',', $request->sort);
-            foreach ($sortFields as $sortField) {
-                $direction = 'asc';
-                if (str_starts_with($sortField, '-')) {
-                    $direction = 'desc';
-                    $sortField = substr($sortField, 1);
-                }
-                
-                if (in_array($sortField, ['title', 'author', 'year', 'genre', 'created_at'])) {
-                    $query->orderBy($sortField, $direction);
-                }
+            if ($request->has('q') && !empty($request->q)) {
+                $searchTerm = $request->q;
+                $query->where(function ($q) use ($searchTerm) {
+                    $q->where('title', 'LIKE', "%{$searchTerm}%")
+                      ->orWhere('author', 'LIKE', "%{$searchTerm}%");
+                });
             }
-        } else {
-            $query->orderBy('title', 'asc');
-        }
 
-        //paginacija
-        $perPage = min($request->get('per_page', 15), 50); //max 50 po stranici
-        $books = $query->paginate($perPage);
+            if ($request->has('genre') && !empty($request->genre)) {
+                $query->where('genre', $request->genre);
+            }
 
-        $booksData = $books->items();
+            if ($request->has('sort')) {
+                $sortFields = explode(',', $request->sort);
+                foreach ($sortFields as $sortField) {
+                    $direction = 'asc';
+                    if (str_starts_with($sortField, '-')) {
+                        $direction = 'desc';
+                        $sortField = substr($sortField, 1);
+                    }
+                    
+                    if (in_array($sortField, ['title', 'author', 'year', 'genre', 'created_at'])) {
+                        $query->orderBy($sortField, $direction);
+                    }
+                }
+            } else {
+                $query->orderBy('title', 'asc');
+            }
 
-        return response()->json([
-            'data' => $booksData,
-            'meta' => [
-                'current_page' => $books->currentPage(),
-                'last_page' => $books->lastPage(),
-                'per_page' => $books->perPage(),
-                'total' => $books->total(),
-                'from' => $books->firstItem(),
-                'to' => $books->lastItem(),
-            ],
-            'links' => [
-                'first' => $books->url(1),
-                'last' => $books->url($books->lastPage()),
-                'prev' => $books->previousPageUrl(),
-                'next' => $books->nextPageUrl(),
-            ],
-            'message' => 'Books retrieved successfully'
-        ]);
+            $perPage = min($request->get('per_page', 15), 50);
+            $books = $query->paginate($perPage);
+
+            $booksData = $books->items();
+
+            return response()->json([
+                'data' => $booksData,
+                'meta' => [
+                    'current_page' => $books->currentPage(),
+                    'last_page' => $books->lastPage(),
+                    'per_page' => $books->perPage(),
+                    'total' => $books->total(),
+                    'from' => $books->firstItem(),
+                    'to' => $books->lastItem(),
+                ],
+                'links' => [
+                    'first' => $books->url(1),
+                    'last' => $books->url($books->lastPage()),
+                    'prev' => $books->previousPageUrl(),
+                    'next' => $books->nextPageUrl(),
+                ],
+                'message' => 'Books retrieved successfully'
+            ]);
+        });
     }
 
     public function store(BookStoreRequest $request): JsonResponse
     {
         $book = Book::create($request->validated());
+        
+        $this->invalidateBooksCache();
 
         return response()->json([
             'data' => $book,
@@ -93,6 +99,8 @@ class BookController extends Controller
     public function update(BookUpdateRequest $request, Book $book): JsonResponse
     {
         $book->update($request->validated());
+        
+        $this->invalidateBooksCache();
 
         return response()->json([
             'data' => $book,
@@ -434,9 +442,46 @@ class BookController extends Controller
     public function destroy(Book $book): JsonResponse
     {
         $book->delete();
+        
+        $this->invalidateBooksCache();
 
         return response()->json([
             'message' => 'Book deleted successfully'
         ]);
+    }
+
+    private function generateCacheKey(Request $request): string
+    {
+        $params = [
+            'page' => $request->get('page', 1),
+            'per_page' => $request->get('per_page', 15),
+            'q' => $request->get('q', ''),
+            'genre' => $request->get('genre', ''),
+            'sort' => $request->get('sort', ''),
+        ];
+        
+        return 'books_index_' . md5(serialize($params));
+    }
+
+    private function invalidateBooksCache(): void
+    {
+        $store = Cache::getStore();
+        
+        if ($store instanceof \Illuminate\Cache\DatabaseStore) {
+            \DB::table('cache')->where('key', 'like', 'laravel-cache-books_index_%')->delete();
+        } elseif (method_exists($store, 'flush')) {
+            Cache::flush();
+        } else {
+            $pattern = 'books_index_*';
+            
+            if (method_exists($store, 'getRedis')) {
+                $keys = $store->getRedis()->keys($pattern);
+                if (!empty($keys)) {
+                    $store->getRedis()->del($keys);
+                }
+            } else {
+                Cache::flush();
+            }
+        }
     }
 }
