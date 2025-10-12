@@ -338,4 +338,123 @@ class LoanTest extends TestCase
         $response = $this->postJson("/api/v1/loans/{$loan->id}/return");
         $response->assertStatus(401);
     }
+
+    public function test_admin_can_view_all_loans_with_filters()
+    {
+        Sanctum::actingAs($this->admin);
+
+        $otherUser = User::factory()->create(['role' => 'user']);
+        $loan1 = Loan::create([
+            'user_id' => $this->user->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(30),
+        ]);
+        $loan2 = Loan::create([
+            'user_id' => $otherUser->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(30),
+        ]);
+
+        $response = $this->getJson('/api/v1/loans');
+
+        $response->assertStatus(200);
+        $response->assertJsonCount(2, 'data');
+    }
+
+    public function test_admin_can_filter_loans_by_user_id()
+    {
+        Sanctum::actingAs($this->admin);
+
+        $otherUser = User::factory()->create(['role' => 'user']);
+        Loan::create([
+            'user_id' => $this->user->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(30),
+        ]);
+        Loan::create([
+            'user_id' => $otherUser->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(30),
+        ]);
+
+        $response = $this->getJson("/api/v1/loans?user_id={$this->user->id}");
+
+        $response->assertStatus(200);
+        $response->assertJsonCount(1, 'data');
+    }
+
+    public function test_admin_can_filter_active_loans()
+    {
+        Sanctum::actingAs($this->admin);
+
+        Loan::create([
+            'user_id' => $this->user->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(30),
+        ]);
+        $returnedLoan = Loan::create([
+            'user_id' => $this->user->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now()->subDays(10),
+            'due_at' => now()->addDays(20),
+            'returned_at' => now(),
+        ]);
+
+        $response = $this->getJson('/api/v1/loans?only_active=1');
+
+        $response->assertStatus(200);
+        $response->assertJsonCount(1, 'data');
+    }
+
+    public function test_admin_can_filter_overdue_loans()
+    {
+        Sanctum::actingAs($this->admin);
+
+        Loan::create([
+            'user_id' => $this->user->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(30),
+        ]);
+        Loan::create([
+            'user_id' => $this->user->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now()->subDays(40),
+            'due_at' => now()->subDays(10),
+        ]);
+
+        $response = $this->getJson('/api/v1/loans?overdue=1');
+
+        $response->assertStatus(200);
+        $response->assertJsonCount(1, 'data');
+    }
+
+    public function test_regular_user_only_sees_own_loans()
+    {
+        Sanctum::actingAs($this->user);
+
+        $otherUser = User::factory()->create(['role' => 'user']);
+        Loan::create([
+            'user_id' => $this->user->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(30),
+        ]);
+        Loan::create([
+            'user_id' => $otherUser->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(30),
+        ]);
+
+        $response = $this->getJson('/api/v1/loans');
+
+        $response->assertStatus(200);
+        $response->assertJsonCount(1, 'data');
+    }
 }

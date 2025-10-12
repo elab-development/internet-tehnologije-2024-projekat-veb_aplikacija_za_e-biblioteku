@@ -15,12 +15,29 @@ class LoanController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $this->authorize('viewAny', Loan::class);
         
-        $loans = Loan::where('user_id', $user->id)
-            ->with(['book:id,title,author,year,genre'])
-            ->orderBy('borrowed_at', 'desc')
-            ->paginate(15);
+        $user = $request->user();
+        $query = Loan::with(['book:id,title,author,year,genre', 'user:id,name,email']);
+        
+        if (!$user->isAdmin()) {
+            $query->where('user_id', $user->id);
+        } else {
+            if ($request->has('user_id')) {
+                $query->where('user_id', $request->user_id);
+            }
+        }
+        
+        if ($request->boolean('only_active')) {
+            $query->whereNull('returned_at');
+        }
+        
+        if ($request->boolean('overdue')) {
+            $query->whereNull('returned_at')
+                  ->where('due_at', '<', now());
+        }
+        
+        $loans = $query->orderBy('borrowed_at', 'desc')->paginate(15);
 
         return response()->json([
             'data' => $loans->items(),
