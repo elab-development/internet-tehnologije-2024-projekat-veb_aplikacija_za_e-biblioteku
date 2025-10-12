@@ -37,6 +37,8 @@ class LoanController extends Controller
     //kreiraj loan
     public function store(Request $request): JsonResponse
     {
+        $this->authorize('create', Loan::class);
+        
         $request->validate([
             'book_id' => 'required|exists:books,id',
         ], [
@@ -67,13 +69,7 @@ class LoanController extends Controller
 
     public function show(Loan $loan): JsonResponse
     {
-        $user = Auth::user();
-        
-        if ($loan->user_id !== $user->id && !$user->isAdmin()) {
-            return response()->json([
-                'message' => 'Access denied'
-            ], 403);
-        }
+        $this->authorize('view', $loan);
 
         $loan->load(['book:id,title,author,year,genre', 'user:id,name,email']);
 
@@ -133,13 +129,7 @@ class LoanController extends Controller
 
     public function update(Request $request, Loan $loan): JsonResponse
     {
-        $user = $request->user();
-        
-        if (!$user->isAdmin()) {
-            return response()->json([
-                'message' => 'Access denied. Admin privileges required.'
-            ], 403);
-        }
+        $this->authorize('update', $loan);
 
         $request->validate([
             'due_at' => 'sometimes|date|after:borrowed_at',

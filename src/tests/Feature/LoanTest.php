@@ -212,7 +212,7 @@ class LoanTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJson([
-                'message' => 'Access denied'
+                'message' => 'This action is unauthorized.'
             ]);
     }
 
@@ -270,12 +270,13 @@ class LoanTest extends TestCase
         ]);
     }
 
-    public function test_regular_user_cannot_update_loan()
+    public function test_regular_user_cannot_update_other_users_loan()
     {
         Sanctum::actingAs($this->user);
 
+        $otherUser = User::factory()->create();
         $loan = Loan::create([
-            'user_id' => $this->user->id,
+            'user_id' => $otherUser->id,
             'book_id' => $this->book->id,
             'borrowed_at' => now(),
             'due_at' => now()->addDays(30),
@@ -287,7 +288,7 @@ class LoanTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJson([
-                'message' => 'Access denied. Admin privileges required.'
+                'message' => 'This action is unauthorized.'
             ]);
     }
 

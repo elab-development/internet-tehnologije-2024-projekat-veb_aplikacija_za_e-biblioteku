@@ -76,6 +76,8 @@ class BookController extends Controller
 
     public function store(BookStoreRequest $request): JsonResponse
     {
+        $this->authorize('create', Book::class);
+        
         $book = Book::create($request->validated());
         
         $this->invalidateBooksCache();
@@ -98,6 +100,8 @@ class BookController extends Controller
 
     public function update(BookUpdateRequest $request, Book $book): JsonResponse
     {
+        $this->authorize('update', $book);
+        
         $book->update($request->validated());
         
         $this->invalidateBooksCache();
@@ -441,6 +445,8 @@ class BookController extends Controller
 
     public function destroy(Book $book): JsonResponse
     {
+        $this->authorize('delete', $book);
+        
         $book->delete();
         
         $this->invalidateBooksCache();
