@@ -40,4 +40,32 @@ class ApiAuthController extends Controller
             'user' => $request->user()
         ]);
     }
+
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $subscription = $user->subscriptions()
+            ->where('ends_at', '>', now())
+            ->where('starts_at', '<=', now())
+            ->first();
+
+        return response()->json([
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                    'created_at' => $user->created_at,
+                ],
+                'subscription' => $subscription ? [
+                    'plan' => $subscription->plan,
+                    'starts_at' => $subscription->starts_at,
+                    'ends_at' => $subscription->ends_at,
+                    'is_active' => $subscription->isActive(),
+                ] : null,
+            ],
+            'message' => 'User profile retrieved successfully'
+        ]);
+    }
 }

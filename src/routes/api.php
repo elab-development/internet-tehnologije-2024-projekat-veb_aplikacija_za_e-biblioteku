@@ -24,6 +24,7 @@ Route::prefix('v1')->group(function () {
     
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/user', [ApiAuthController::class, 'user']);
+        Route::get('/me', [ApiAuthController::class, 'me']);
         Route::post('/logout', [ApiAuthController::class, 'logout']);
         
         Route::middleware(['admin'])->group(function () {
