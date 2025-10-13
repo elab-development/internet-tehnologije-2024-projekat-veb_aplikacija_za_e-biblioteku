@@ -30,6 +30,8 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['admin'])->group(function () {
             Route::get('/books/export', [BookController::class, 'exportCsv'])
                 ->middleware(['throttle:5,1']);
+            Route::get('/loans/export', [LoanController::class, 'exportCsv'])
+                ->middleware(['throttle:5,1']);
             Route::put('/books/{book}/restore', [BookController::class, 'restore']);
             Route::post('/books/{book}/cover', [BookController::class, 'uploadCover'])
                 ->middleware(['throttle:10,1']);

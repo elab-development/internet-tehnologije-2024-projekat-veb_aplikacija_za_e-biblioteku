@@ -8,6 +8,7 @@ use App\Events\LoanCreated;
 use App\Events\LoanReturned;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
@@ -159,6 +160,37 @@ class LoanController extends Controller
         return response()->json([
             'data' => $loan,
             'message' => 'Loan updated successfully'
+        ]);
+    }
+
+    public function exportCsv(Request $request): Response
+    {
+        $this->authorize('exportCsv', Loan::class);
+        
+        $loans = Loan::with(['book:id,title,author', 'user:id,name,email'])
+            ->when($request->boolean('only_active'), fn($q) => $q->whereNull('returned_at'))
+            ->orderBy('borrowed_at', 'desc')
+            ->get();
+        
+        $csv = "ID,User,Email,Book,Author,Borrowed At,Due At,Returned At,Status\n";
+        foreach ($loans as $loan) {
+            $csv .= sprintf(
+                "%d,%s,%s,%s,%s,%s,%s,%s,%s\n",
+                $loan->id,
+                $loan->user->name,
+                $loan->user->email,
+                $loan->book->title,
+                $loan->book->author,
+                $loan->borrowed_at->format('Y-m-d H:i:s'),
+                $loan->due_at->format('Y-m-d H:i:s'),
+                $loan->returned_at?->format('Y-m-d H:i:s') ?? 'N/A',
+                $loan->returned_at ? 'Returned' : ($loan->isOverdue() ? 'Overdue' : 'Active')
+            );
+        }
+        
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="loans_export_' . now()->format('Y-m-d_H-i-s') . '.csv"',
         ]);
     }
 }

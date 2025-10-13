@@ -457,4 +457,58 @@ class LoanTest extends TestCase
         $response->assertStatus(200);
         $response->assertJsonCount(1, 'data');
     }
+
+    public function test_admin_can_export_loans_csv()
+    {
+        Sanctum::actingAs($this->admin);
+
+        Loan::create([
+            'user_id' => $this->user->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(30),
+        ]);
+
+        $response = $this->getJson('/api/v1/loans/export');
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+        $response->assertHeader('Content-Disposition');
+    }
+
+    public function test_regular_user_cannot_export_loans_csv()
+    {
+        Sanctum::actingAs($this->user);
+
+        $response = $this->getJson('/api/v1/loans/export');
+
+        $response->assertStatus(403);
+        $response->assertJson([
+            'message' => 'Access denied. Admin privileges required.'
+        ]);
+    }
+
+    public function test_admin_can_export_active_loans_only()
+    {
+        Sanctum::actingAs($this->admin);
+
+        Loan::create([
+            'user_id' => $this->user->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now(),
+            'due_at' => now()->addDays(30),
+        ]);
+        Loan::create([
+            'user_id' => $this->user->id,
+            'book_id' => $this->book->id,
+            'borrowed_at' => now()->subDays(10),
+            'due_at' => now()->addDays(20),
+            'returned_at' => now(),
+        ]);
+
+        $response = $this->getJson('/api/v1/loans/export?only_active=1');
+
+        $response->assertStatus(200);
+        $response->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
+    }
 }

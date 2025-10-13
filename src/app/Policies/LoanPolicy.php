@@ -42,4 +42,9 @@ class LoanPolicy
     {
         return $user->isAdmin();
     }
+
+    public function exportCsv(User $user): bool
+    {
+        return $user->isAdmin();
+    }
 }
