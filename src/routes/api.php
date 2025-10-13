@@ -16,7 +16,8 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::post('/register', [RegisteredUserController::class, 'store']);
-    Route::post('/login', [ApiAuthController::class, 'login']);
+    Route::post('/login', [ApiAuthController::class, 'login'])
+        ->middleware(['throttle:5,1']); // 5 pokušaja po minuti
     
     Route::get('/books', [BookController::class, 'index']);
     Route::get('/books/search', [BookController::class, 'search'])
