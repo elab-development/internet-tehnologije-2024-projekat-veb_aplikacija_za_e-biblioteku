@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Book;
 use App\Http\Requests\BookStoreRequest;
 use App\Http\Requests\BookUpdateRequest;
+use App\Services\OpenLibraryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -17,60 +18,60 @@ class BookController extends Controller
         $cacheKey = $this->generateCacheKey($request);
         
         return Cache::remember($cacheKey, 300, function () use ($request) {
-            $query = Book::query();
+        $query = Book::query();
 
-            if ($request->has('q') && !empty($request->q)) {
-                $searchTerm = $request->q;
-                $query->where(function ($q) use ($searchTerm) {
-                    $q->where('title', 'LIKE', "%{$searchTerm}%")
-                      ->orWhere('author', 'LIKE', "%{$searchTerm}%");
-                });
-            }
+        if ($request->has('q') && !empty($request->q)) {
+            $searchTerm = $request->q;
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('title', 'LIKE', "%{$searchTerm}%")
+                  ->orWhere('author', 'LIKE', "%{$searchTerm}%");
+            });
+        }
 
-            if ($request->has('genre') && !empty($request->genre)) {
-                $query->where('genre', $request->genre);
-            }
+        if ($request->has('genre') && !empty($request->genre)) {
+            $query->where('genre', $request->genre);
+        }
 
-            if ($request->has('sort')) {
-                $sortFields = explode(',', $request->sort);
-                foreach ($sortFields as $sortField) {
-                    $direction = 'asc';
-                    if (str_starts_with($sortField, '-')) {
-                        $direction = 'desc';
-                        $sortField = substr($sortField, 1);
-                    }
-                    
-                    if (in_array($sortField, ['title', 'author', 'year', 'genre', 'created_at'])) {
-                        $query->orderBy($sortField, $direction);
-                    }
+        if ($request->has('sort')) {
+            $sortFields = explode(',', $request->sort);
+            foreach ($sortFields as $sortField) {
+                $direction = 'asc';
+                if (str_starts_with($sortField, '-')) {
+                    $direction = 'desc';
+                    $sortField = substr($sortField, 1);
                 }
-            } else {
-                $query->orderBy('title', 'asc');
+                
+                if (in_array($sortField, ['title', 'author', 'year', 'genre', 'created_at'])) {
+                    $query->orderBy($sortField, $direction);
+                }
             }
+        } else {
+            $query->orderBy('title', 'asc');
+        }
 
             $perPage = min($request->get('per_page', 15), 50);
-            $books = $query->paginate($perPage);
+        $books = $query->paginate($perPage);
 
             $booksData = $books->items();
 
-            return response()->json([
+        return response()->json([
                 'data' => $booksData,
-                'meta' => [
-                    'current_page' => $books->currentPage(),
-                    'last_page' => $books->lastPage(),
-                    'per_page' => $books->perPage(),
-                    'total' => $books->total(),
-                    'from' => $books->firstItem(),
-                    'to' => $books->lastItem(),
-                ],
-                'links' => [
-                    'first' => $books->url(1),
-                    'last' => $books->url($books->lastPage()),
-                    'prev' => $books->previousPageUrl(),
-                    'next' => $books->nextPageUrl(),
-                ],
-                'message' => 'Books retrieved successfully'
-            ]);
+            'meta' => [
+                'current_page' => $books->currentPage(),
+                'last_page' => $books->lastPage(),
+                'per_page' => $books->perPage(),
+                'total' => $books->total(),
+                'from' => $books->firstItem(),
+                'to' => $books->lastItem(),
+            ],
+            'links' => [
+                'first' => $books->url(1),
+                'last' => $books->url($books->lastPage()),
+                'prev' => $books->previousPageUrl(),
+                'next' => $books->nextPageUrl(),
+            ],
+            'message' => 'Books retrieved successfully'
+        ]);
         });
     }
 
@@ -250,7 +251,7 @@ class BookController extends Controller
         }
 
         try {
-            $filePath = \Storage::disk('public')->path($book->pdf_path);
+        $filePath = \Storage::disk('public')->path($book->pdf_path);
             $parser = new Parser();
             $pdf = $parser->parseFile($filePath);
             $pages = $pdf->getPages();
@@ -555,5 +556,28 @@ class BookController extends Controller
                 Cache::flush();
             }
         }
+    }
+
+    public function fetchByIsbn(Request $request, OpenLibraryService $openLibraryService): JsonResponse
+    {
+        $request->validate([
+            'isbn' => 'required|string|min:10|max:13',
+        ]);
+
+        $isbn = $request->isbn;
+        $bookData = $openLibraryService->fetchBookByIsbn($isbn);
+
+        if (!$bookData) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Book not found in Open Library',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $bookData,
+            'message' => 'Book data retrieved successfully',
+        ]);
     }
 }
