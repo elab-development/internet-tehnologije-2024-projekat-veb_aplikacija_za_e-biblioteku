@@ -22,8 +22,15 @@ Route::prefix('v1')->group(function () {
     Route::get('/books', [BookController::class, 'index']);
     Route::get('/books/search', [BookController::class, 'search'])
         ->middleware(['throttle:30,1']);
-    Route::get('/books/fetch-by-isbn', [BookController::class, 'fetchByIsbn'])
-        ->middleware(['throttle:10,1']);
+Route::get('/books/fetch-by-isbn', [BookController::class, 'fetchByIsbn'])
+    ->middleware(['throttle:10,1']);
+
+// Subscription routes
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::post('/subscriptions', [App\Http\Controllers\SubscriptionController::class, 'create']);
+    Route::get('/subscriptions/status', [App\Http\Controllers\SubscriptionController::class, 'status']);
+    Route::get('/subscriptions/history', [App\Http\Controllers\SubscriptionController::class, 'history']);
+});
     
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/user', [ApiAuthController::class, 'user']);
