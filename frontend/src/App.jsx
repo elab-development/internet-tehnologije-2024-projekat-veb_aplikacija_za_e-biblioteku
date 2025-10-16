@@ -7,6 +7,7 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 import BooksPage from './pages/BooksPage'
+import BookDetailsPage from './pages/BookDetailsPage'
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="books" element={<BooksPage />} />
+            <Route path="books/:id" element={<BookDetailsPage />} />
             {/* Additional routes will be added here */}
           </Route>
         </Routes>
