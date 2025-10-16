@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 import BooksPage from './pages/BooksPage'
 import BookDetailsPage from './pages/BookDetailsPage'
+import LoansPage from './pages/LoansPage'
 
 function App() {
   return (
@@ -25,6 +26,11 @@ function App() {
             } />
             <Route path="books" element={<BooksPage />} />
             <Route path="books/:id" element={<BookDetailsPage />} />
+            <Route path="loans" element={
+              <ProtectedRoute>
+                <LoansPage />
+              </ProtectedRoute>
+            } />
             {/* Additional routes will be added here */}
           </Route>
         </Routes>
