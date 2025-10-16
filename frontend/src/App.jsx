@@ -1,9 +1,11 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import MainLayout from './components/MainLayout'
+import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import ProfilePage from './pages/ProfilePage'
 
 function App() {
   return (
@@ -14,6 +16,11 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/" element={<MainLayout />}>
             <Route index element={<HomePage />} />
+            <Route path="profile" element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            } />
             {/* Additional routes will be added here */}
           </Route>
         </Routes>
