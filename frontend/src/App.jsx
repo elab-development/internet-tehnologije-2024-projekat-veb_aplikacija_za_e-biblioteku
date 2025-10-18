@@ -11,6 +11,7 @@ import BookDetailsPage from './pages/BookDetailsPage'
 import LoansPage from './pages/LoansPage'
 import SubscriptionPage from './pages/SubscriptionPage'
 import AdminBooksPage from './pages/AdminBooksPage'
+import AdminBookFormPage from './pages/AdminBookFormPage'
 import AdminRoute from './components/AdminRoute'
 
 function App() {
@@ -43,6 +44,20 @@ function App() {
               <ProtectedRoute>
                 <AdminRoute>
                   <AdminBooksPage />
+                </AdminRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="admin/books/create" element={
+              <ProtectedRoute>
+                <AdminRoute>
+                  <AdminBookFormPage />
+                </AdminRoute>
+              </ProtectedRoute>
+            } />
+            <Route path="admin/books/:id/edit" element={
+              <ProtectedRoute>
+                <AdminRoute>
+                  <AdminBookFormPage />
                 </AdminRoute>
               </ProtectedRoute>
             } />
