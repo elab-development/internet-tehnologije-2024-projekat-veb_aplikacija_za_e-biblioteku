@@ -10,6 +10,8 @@ import BooksPage from './pages/BooksPage'
 import BookDetailsPage from './pages/BookDetailsPage'
 import LoansPage from './pages/LoansPage'
 import SubscriptionPage from './pages/SubscriptionPage'
+import AdminBooksPage from './pages/AdminBooksPage'
+import AdminRoute from './components/AdminRoute'
 
 function App() {
   return (
@@ -35,6 +37,13 @@ function App() {
             <Route path="subscription" element={
               <ProtectedRoute>
                 <SubscriptionPage />
+              </ProtectedRoute>
+            } />
+            <Route path="admin/books" element={
+              <ProtectedRoute>
+                <AdminRoute>
+                  <AdminBooksPage />
+                </AdminRoute>
               </ProtectedRoute>
             } />
             {/* Additional routes will be added here */}

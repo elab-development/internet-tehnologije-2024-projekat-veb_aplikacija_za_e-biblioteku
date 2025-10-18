@@ -66,4 +66,38 @@ export const bookService = {
     const response = await axiosInstance.get(`/books/fetch-by-isbn?isbn=${isbn}`)
     return response.data
   },
+
+  // Admin functions
+  createBook: async (bookData) => {
+    const response = await axiosInstance.post('/books', bookData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
+  updateBook: async (id, bookData) => {
+    const response = await axiosInstance.post(`/books/${id}`, bookData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    return response.data
+  },
+
+  deleteBook: async (id) => {
+    const response = await axiosInstance.delete(`/books/${id}`)
+    return response.data
+  },
+
+  exportBooks: async (params = {}) => {
+    const queryParams = new URLSearchParams()
+    
+    if (params.search) queryParams.append('search', params.search)
+    if (params.genre) queryParams.append('genre', params.genre)
+
+    const response = await axiosInstance.get(`/books/export.csv?${queryParams.toString()}`)
+    return response.data
+  },
 }
