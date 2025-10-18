@@ -12,6 +12,7 @@ import LoansPage from './pages/LoansPage'
 import SubscriptionPage from './pages/SubscriptionPage'
 import AdminBooksPage from './pages/AdminBooksPage'
 import AdminBookFormPage from './pages/AdminBookFormPage'
+import NotFoundPage from './pages/NotFoundPage'
 import AdminRoute from './components/AdminRoute'
 
 function App() {
@@ -63,6 +64,7 @@ function App() {
             } />
             {/* Additional routes will be added here */}
           </Route>
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
         <Toaster
           position="top-right"
