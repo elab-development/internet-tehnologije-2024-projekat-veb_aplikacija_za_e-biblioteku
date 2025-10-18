@@ -9,6 +9,7 @@ import ProfilePage from './pages/ProfilePage'
 import BooksPage from './pages/BooksPage'
 import BookDetailsPage from './pages/BookDetailsPage'
 import LoansPage from './pages/LoansPage'
+import SubscriptionPage from './pages/SubscriptionPage'
 
 function App() {
   return (
@@ -29,6 +30,11 @@ function App() {
             <Route path="loans" element={
               <ProtectedRoute>
                 <LoansPage />
+              </ProtectedRoute>
+            } />
+            <Route path="subscription" element={
+              <ProtectedRoute>
+                <SubscriptionPage />
               </ProtectedRoute>
             } />
             {/* Additional routes will be added here */}
