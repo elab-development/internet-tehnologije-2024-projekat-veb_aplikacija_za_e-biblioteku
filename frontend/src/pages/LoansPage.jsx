@@ -30,14 +30,14 @@ const LoansPage = () => {
         user_id: isAdmin ? searchParams.get('user_id') || '' : undefined,
       }
 
-      const response = await loanService.getLoans(params)
-      
-      if (response.success) {
-        setLoans(response.data.data)
-        setPagination(response.data)
-      } else {
-        toast.error('Greška pri učitavanju pozajmica')
-      }
+          const response = await loanService.getLoans(params)
+          
+          if (response.data) {
+            setLoans(response.data)
+            setPagination(response.meta)
+          } else {
+            toast.error('Greška pri učitavanju pozajmica')
+          }
     } catch (error) {
       toast.error('Greška pri učitavanju pozajmica')
       console.error('Error fetching loans:', error)

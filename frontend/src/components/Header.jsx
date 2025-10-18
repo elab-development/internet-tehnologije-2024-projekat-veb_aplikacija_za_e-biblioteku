@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/useAuthStore'
 
 const Header = () => {
-  const { user, logout, isAdmin } = useAuthStore()
+  const { user, logout, isAdmin, isAuthenticated } = useAuthStore()
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -30,7 +30,7 @@ const Header = () => {
             >
               Knjige
             </Link>
-            {user && (
+            {isAuthenticated() && (
               <Link 
                 to="/loans" 
                 className="text-gothic-300 hover:text-gothic-100 transition-colors duration-200"
@@ -49,7 +49,7 @@ const Header = () => {
           </nav>
 
           <div className="flex items-center space-x-4">
-            {user ? (
+            {isAuthenticated() ? (
               <div className="flex items-center space-x-4">
                 <Link
                   to="/profile"

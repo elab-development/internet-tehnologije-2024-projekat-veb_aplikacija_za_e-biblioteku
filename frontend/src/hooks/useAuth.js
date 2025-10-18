@@ -10,6 +10,7 @@ export const useAuth = () => {
     logout,
     isAdmin,
     hasActiveSubscription,
+    isAuthenticated,
     updateUser,
     fetchProfile,
   } = useAuthStore()
@@ -23,8 +24,8 @@ export const useAuth = () => {
     logout,
     isAdmin: isAdmin(),
     hasActiveSubscription: hasActiveSubscription(),
+    isAuthenticated: isAuthenticated(),
     updateUser,
     fetchProfile,
-    isAuthenticated: !!user,
   }
 }

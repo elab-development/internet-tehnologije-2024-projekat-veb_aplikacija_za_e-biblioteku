@@ -34,9 +34,9 @@ const BooksPage = () => {
 
       const response = await bookService.getBooks(params)
       
-      if (response.success) {
-        setBooks(response.data.data)
-        setPagination(response.data)
+      if (response.data) {
+        setBooks(response.data)
+        setPagination(response.meta)
       } else {
         toast.error('Greška pri učitavanju knjiga')
       }

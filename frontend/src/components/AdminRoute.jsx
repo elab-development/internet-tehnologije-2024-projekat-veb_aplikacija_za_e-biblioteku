@@ -2,9 +2,9 @@ import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '../store/useAuthStore'
 
 const AdminRoute = ({ children }) => {
-  const { user, isAdmin } = useAuthStore()
+  const { isAuthenticated, isAdmin } = useAuthStore()
 
-  if (!user) {
+  if (!isAuthenticated()) {
     return <Navigate to="/login" replace />
   }
 

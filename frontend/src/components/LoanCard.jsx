@@ -10,7 +10,7 @@ const LoanCard = ({ loan, onReturn }) => {
     setReturning(true)
     try {
       const response = await loanService.returnLoan(loan.id)
-      if (response.success) {
+      if (response.data) {
         toast.success('Knjiga je uspešno vraćena!')
         onReturn(loan.id)
       } else {

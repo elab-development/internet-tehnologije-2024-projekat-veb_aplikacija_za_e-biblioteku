@@ -23,7 +23,7 @@ const BookDetailsPage = () => {
     setLoading(true)
     try {
       const response = await bookService.getBook(id)
-      if (response.success) {
+      if (response.data) {
         setBook(response.data)
       } else {
         toast.error('Knjiga nije pronađena')
@@ -46,7 +46,7 @@ const BookDetailsPage = () => {
     setBorrowing(true)
     try {
       const response = await bookService.borrowBook(id)
-      if (response.success) {
+      if (response.data) {
         toast.success('Knjiga je uspešno pozajmljena!')
         navigate('/loans')
       } else {
@@ -61,7 +61,7 @@ const BookDetailsPage = () => {
   const handlePreview = async () => {
     try {
       const response = await bookService.getBookPreview(id)
-      if (response.success) {
+      if (response.data) {
         setPreviewContent(response.data)
         setShowPreview(true)
       } else {
@@ -86,7 +86,7 @@ const BookDetailsPage = () => {
 
     try {
       const response = await bookService.readBook(id)
-      if (response.success) {
+      if (response.data) {
         // For now, just show the content in a modal or new page
         // In a real app, you'd implement a proper PDF reader
         setPreviewContent(response.data)

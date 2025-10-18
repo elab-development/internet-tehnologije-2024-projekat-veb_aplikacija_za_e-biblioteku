@@ -11,6 +11,7 @@ const axiosInstance = axios.create({
 // Request interceptor - dodaj token u header
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Prvo proveri localStorage, zatim Zustand store
     const token = localStorage.getItem('auth_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`

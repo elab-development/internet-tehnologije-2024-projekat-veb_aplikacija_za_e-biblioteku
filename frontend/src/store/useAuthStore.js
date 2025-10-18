@@ -6,19 +6,19 @@ const useAuthStore = create(
   persist(
     (set, get) => ({
       user: null,
-      token: null,
+      token: localStorage.getItem('auth_token'),
       isLoading: false,
 
       // Login function
       login: async (email, password) => {
         set({ isLoading: true })
         try {
-          const response = await axiosInstance.post('/auth/login', {
+          const response = await axiosInstance.post('/login', {
             email,
             password,
           })
 
-          const { user, token } = response.data.data
+          const { user, token } = response.data
 
           set({
             user,
@@ -26,7 +26,10 @@ const useAuthStore = create(
             isLoading: false,
           })
 
-          return { success: true, user }
+          // Čuvaj token u localStorage za axiosInstance
+          localStorage.setItem('auth_token', token)
+
+          return { success: true, user, token }
         } catch (error) {
           set({ isLoading: false })
           return {
@@ -40,14 +43,14 @@ const useAuthStore = create(
       register: async (name, email, password, password_confirmation) => {
         set({ isLoading: true })
         try {
-          const response = await axiosInstance.post('/auth/register', {
+          const response = await axiosInstance.post('/register', {
             name,
             email,
             password,
             password_confirmation,
           })
 
-          const { user, token } = response.data.data
+          const { user, token } = response.data
 
           set({
             user,
@@ -55,7 +58,10 @@ const useAuthStore = create(
             isLoading: false,
           })
 
-          return { success: true, user }
+          // Čuvaj token u localStorage za axiosInstance
+          localStorage.setItem('auth_token', token)
+
+          return { success: true, user, token }
         } catch (error) {
           set({ isLoading: false })
           return {
@@ -87,6 +93,12 @@ const useAuthStore = create(
         return user?.subscription?.active === true
       },
 
+      // Check if user is authenticated
+      isAuthenticated: () => {
+        const { user, token } = get()
+        return !!(user && token)
+      },
+
       // Update user data (after profile changes)
       updateUser: (userData) => {
         set((state) => ({
@@ -98,7 +110,7 @@ const useAuthStore = create(
       fetchProfile: async () => {
         try {
           const response = await axiosInstance.get('/me')
-          const userData = response.data.data
+          const userData = response.data
 
           set((state) => ({
             user: { ...state.user, ...userData },
