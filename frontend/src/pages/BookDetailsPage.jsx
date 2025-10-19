@@ -14,6 +14,7 @@ const BookDetailsPage = () => {
   const [borrowing, setBorrowing] = useState(false)
   const [previewContent, setPreviewContent] = useState(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [liking, setLiking] = useState(false)
 
   useEffect(() => {
     fetchBook()
@@ -95,6 +96,31 @@ const BookDetailsPage = () => {
       console.error('Error reading book:', error)
       toast.error(error.response?.data?.message || 'Greška pri čitanju knjige')
     }
+  }
+
+  const handleLike = async () => {
+    if (!isAuthenticated) {
+      toast.error('Morate se prijaviti da biste lajkovali knjigu')
+      navigate('/login')
+      return
+    }
+
+    setLiking(true)
+    try {
+      const response = await bookService.toggleLike(id)
+      if (response.data) {
+        setBook(prev => ({
+          ...prev,
+          is_liked_by_user: response.data.is_liked,
+          likes_count: response.data.likes_count
+        }))
+        toast.success(response.message)
+      }
+    } catch (error) {
+      console.error('Error toggling like:', error)
+      toast.error(error.response?.data?.message || 'Greška pri lajkovanju')
+    }
+    setLiking(false)
   }
 
   if (loading) {
@@ -191,6 +217,11 @@ const BookDetailsPage = () => {
               </div>
             )}
 
+            <div className="flex items-center gap-2">
+              <span className="text-gothic-400 text-sm">Lajkovi:</span>
+              <span className="text-gothic-100">{book.likes_count || 0}</span>
+            </div>
+
             {book.isbn && (
               <div>
                 <span className="text-gothic-400 text-sm">ISBN:</span>
@@ -216,6 +247,27 @@ const BookDetailsPage = () => {
             >
               Pregled (prve 3 stranice)
             </button>
+
+            {isAuthenticated ? (
+              <button
+                onClick={handleLike}
+                disabled={liking}
+                className={`w-full py-2 px-4 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  book?.is_liked_by_user 
+                    ? 'bg-red-600 hover:bg-red-700 text-white' 
+                    : 'bg-gothic-700 hover:bg-gothic-600 text-gothic-100'
+                }`}
+              >
+                {liking ? 'Lajkovanje...' : (book?.is_liked_by_user ? '❤️ Odlajkuj' : '🤍 Lajkuj')}
+              </button>
+            ) : (
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full py-2 px-4 rounded-lg font-medium bg-gothic-700 hover:bg-gothic-600 text-gothic-100 transition-colors"
+              >
+                🤍 Prijavi se da lajkuješ
+              </button>
+            )}
 
             {isAuthenticated ? (
               <button

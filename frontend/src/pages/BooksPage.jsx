@@ -73,6 +73,14 @@ const BooksPage = () => {
     setSearchParams(newParams)
   }
 
+  const handleBookUpdate = (bookId, updates) => {
+    setBooks(prevBooks => 
+      prevBooks.map(book => 
+        book.id === bookId ? { ...book, ...updates } : book
+      )
+    )
+  }
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
@@ -182,7 +190,7 @@ const BooksPage = () => {
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
             {books.map((book) => (
-              <BookCard key={book.id} book={book} />
+              <BookCard key={book.id} book={book} onBookUpdate={handleBookUpdate} />
             ))}
           </div>
 

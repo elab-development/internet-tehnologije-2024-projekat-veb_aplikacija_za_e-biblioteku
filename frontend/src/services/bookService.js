@@ -68,6 +68,16 @@ export const bookService = {
     return response.data
   },
 
+  toggleLike: async (id) => {
+    const response = await axiosInstance.post(`/books/${id}/like`)
+    return response.data
+  },
+
+  getLikeStatus: async (id) => {
+    const response = await axiosInstance.get(`/books/${id}/like-status`)
+    return response.data
+  },
+
   // Fetch book by ISBN from Open Library
   fetchByIsbn: async (isbn) => {
     const response = await axiosInstance.get(`/books/fetch-by-isbn?isbn=${isbn}`)
