@@ -67,6 +67,16 @@ class LoanController extends Controller
         $user = $request->user();
         $bookId = $request->book_id;
 
+        $existingLoan = Loan::where('user_id', $user->id)
+            ->where('book_id', $bookId)
+            ->whereNull('returned_at')
+            ->first();
+
+        if ($existingLoan) {
+            return response()->json([
+                'message' => 'Već imate pozajmljenu ovu knjigu. Vratite je pre ponovnog pozajmljivanja.'
+            ], 400);
+        }
 
         $loan = Loan::create([
             'user_id' => $user->id,
@@ -100,6 +110,18 @@ class LoanController extends Controller
     public function borrow(Request $request, Book $book): JsonResponse
     {
         $user = $request->user();
+
+        // Proveri da li korisnik već ima aktivnu pozajmicu za ovu knjigu
+        $existingLoan = Loan::where('user_id', $user->id)
+            ->where('book_id', $book->id)
+            ->whereNull('returned_at')
+            ->first();
+
+        if ($existingLoan) {
+            return response()->json([
+                'message' => 'Već imate pozajmljenu ovu knjigu. Vratite je pre ponovnog pozajmljivanja.'
+            ], 400);
+        }
 
         $loan = Loan::create([
             'user_id' => $user->id,
