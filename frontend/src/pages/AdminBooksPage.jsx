@@ -36,9 +36,9 @@ const AdminBooksPage = () => {
 
       const response = await bookService.getBooks(params)
       
-      if (response.success) {
-        setBooks(response.data.data)
-        setPagination(response.data)
+      if (response.data) {
+        setBooks(response.data)
+        setPagination(response.meta)
       } else {
         toast.error('Greška pri učitavanju knjiga')
       }
@@ -53,7 +53,7 @@ const AdminBooksPage = () => {
     if (window.confirm('Da li ste sigurni da želite da obrišete ovu knjigu?')) {
       try {
         const response = await bookService.deleteBook(id)
-        if (response.success) {
+        if (response.message) {
           toast.success('Knjiga je uspešno obrisana!')
           fetchBooks() // Refresh the list
         } else {

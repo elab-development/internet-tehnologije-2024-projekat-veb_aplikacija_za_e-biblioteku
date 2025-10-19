@@ -64,7 +64,11 @@ const LoansPage = () => {
   }
 
   const handleReturn = (loanId) => {
-    setLoans(prev => prev.filter(loan => loan.id !== loanId))
+    setLoans(prev => prev.map(loan => 
+      loan.id === loanId 
+        ? { ...loan, returned_at: new Date().toISOString() }
+        : loan
+    ))
   }
 
   const handleExport = async () => {
