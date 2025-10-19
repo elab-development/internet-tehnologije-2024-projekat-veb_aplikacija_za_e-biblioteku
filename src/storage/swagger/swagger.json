@@ -610,6 +610,35 @@
                 ]
             }
         },
+        "/v1/books/{book}/like-status": {
+            "get": {
+                "summary": "",
+                "description": "",
+                "deprecated": false,
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "(Unauthorized) Invalid or missing Access Token"
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "book",
+                        "in": "path",
+                        "required": true,
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ]
+            }
+        },
         "/v1/subscriptions": {
             "post": {
                 "summary": "",
@@ -1059,6 +1088,60 @@
                     "v1"
                 ]
             }
+        },
+        "/v1/books/{book}/like": {
+            "post": {
+                "summary": "",
+                "description": "",
+                "deprecated": false,
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "(Unauthorized) Invalid or missing Access Token"
+                    }
+                },
+                "parameters": [
+                    {
+                        "name": "book",
+                        "in": "path",
+                        "required": true,
+                        "description": "",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ],
+                "tags": [
+                    "v1"
+                ]
+            }
+        },
+        "-docs": {
+            "json": {
+                "get": {
+                    "summary": "",
+                    "description": "",
+                    "deprecated": false,
+                    "responses": {
+                        "200": {
+                            "description": "OK"
+                        },
+                        "401": {
+                            "description": "(Unauthorized) Invalid or missing Access Token"
+                        }
+                    },
+                    "tags": [
+                        "-docs.json"
+                    ]
+                }
+            }
         }
     },
     "tags": [],
@@ -1154,6 +1237,41 @@
                     "title",
                     "author",
                     "year"
+                ]
+            },
+            "Like": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "user_id": {
+                        "type": "integer"
+                    },
+                    "book_id": {
+                        "type": "integer"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "user": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/User"
+                    },
+                    "book": {
+                        "type": "object",
+                        "$ref": "#/components/schemas/Book"
+                    }
+                },
+                "required": [
+                    "id",
+                    "user_id",
+                    "book_id"
                 ]
             },
             "Loan": {

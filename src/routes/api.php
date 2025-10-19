@@ -4,6 +4,7 @@ use App\Http\Controllers\Auth\ApiAuthController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\LoanController;
+use App\Http\Controllers\LikeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +35,7 @@ Route::prefix('v1')->group(function () {
     Route::get('/books/{book}', [BookController::class, 'show']);
     Route::get('/books/{book}/preview', [BookController::class, 'previewBook'])
         ->middleware(['throttle:10,1']);
+    Route::get('/books/{book}/like-status', [LikeController::class, 'status']);
 
     Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/subscriptions', [App\Http\Controllers\SubscriptionController::class, 'create']);
@@ -62,5 +64,7 @@ Route::prefix('v1')->group(function () {
         
         Route::get('/books/{book}/page', [BookController::class, 'readBookPage'])
             ->middleware(['throttle:20,1']); //20 zahteva
+        
+        Route::post('/books/{book}/like', [LikeController::class, 'toggle']);
     });
 });

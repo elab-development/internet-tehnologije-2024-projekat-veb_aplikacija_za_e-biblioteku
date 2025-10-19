@@ -71,4 +71,14 @@ class User extends Authenticatable
             ->where('ends_at', '>=', now())
             ->exists();
     }
+
+    public function likes()
+    {
+        return $this->hasMany(Like::class);
+    }
+
+    public function likedBooks()
+    {
+        return $this->belongsToMany(Book::class, 'likes');
+    }
 }

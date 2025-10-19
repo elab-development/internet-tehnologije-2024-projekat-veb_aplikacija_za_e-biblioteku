@@ -108,14 +108,7 @@ class BookController extends Controller
     {
         $bookData = $book->toArray();
         
-        $user = null;
-        $token = request()->bearerToken();
-        if ($token) {
-            $personalAccessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
-            if ($personalAccessToken) {
-                $user = $personalAccessToken->tokenable;
-            }
-        }
+        $user = auth()->user();
         
         if ($user) {
             $userLoan = $book->loans()
@@ -133,10 +126,15 @@ class BookController extends Controller
                 'due_at' => $userLoan->due_at,
                 'is_overdue' => $userLoan->due_at < now(),
             ] : null;
+            
+            $bookData['is_liked_by_user'] = $book->isLikedBy($user);
         } else {
             $bookData['is_borrowed_by_user'] = false;
             $bookData['user_loan'] = null;
+            $bookData['is_liked_by_user'] = false;
         }
+        
+        $bookData['likes_count'] = $book->likes()->count();
         
         return response()->json([
             'data' => $bookData,
