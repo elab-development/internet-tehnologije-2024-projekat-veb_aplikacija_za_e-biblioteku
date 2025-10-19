@@ -9,27 +9,29 @@ const useAuthStore = create(
       token: localStorage.getItem('auth_token'),
       isLoading: false,
 
-      // Login function
-      login: async (email, password) => {
-        set({ isLoading: true })
-        try {
-          const response = await axiosInstance.post('/login', {
-            email,
-            password,
-          })
+        // Login function
+        login: async (email, password) => {
+          set({ isLoading: true })
+          try {
+            const response = await axiosInstance.post('/login', {
+              email,
+              password,
+            })
 
-          const { user, token } = response.data
+            const { user, token } = response.data
+            console.log('Login response:', response.data) // Debug log
 
-          set({
-            user,
-            token,
-            isLoading: false,
-          })
+            set({
+              user,
+              token,
+              isLoading: false,
+            })
 
-          // Čuvaj token u localStorage za axiosInstance
-          localStorage.setItem('auth_token', token)
+            // Čuvaj token u localStorage za axiosInstance
+            localStorage.setItem('auth_token', token)
+            console.log('Token saved to localStorage:', token) // Debug log
 
-          return { success: true, user, token }
+            return { success: true, user, token }
         } catch (error) {
           set({ isLoading: false })
           return {
@@ -58,10 +60,15 @@ const useAuthStore = create(
             isLoading: false,
           })
 
-          // Čuvaj token u localStorage za axiosInstance
-          localStorage.setItem('auth_token', token)
+            // Čuvaj token u localStorage za axiosInstance
+            localStorage.setItem('auth_token', token)
 
-          return { success: true, user, token }
+            const profileResult = await get().fetchProfile()
+            if (profileResult.success) {
+              set({ user: profileResult.user })
+            }
+
+            return { success: true, user, token }
         } catch (error) {
           set({ isLoading: false })
           return {
@@ -110,13 +117,20 @@ const useAuthStore = create(
       fetchProfile: async () => {
         try {
           const response = await axiosInstance.get('/me')
-          const userData = response.data
+          const responseData = response.data
+
+          const userData = responseData.data.user
+          const subscription = responseData.data.subscription
 
           set((state) => ({
-            user: { ...state.user, ...userData },
+            user: { 
+              ...state.user, 
+              ...userData,
+              subscription: subscription
+            },
           }))
 
-          return { success: true, user: userData }
+          return { success: true, user: { ...userData, subscription } }
         } catch (error) {
           return {
             success: false,

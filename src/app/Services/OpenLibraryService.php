@@ -19,16 +19,38 @@ class OpenLibraryService
 
             $data = $response->json();
             
-            return [
+            $bookData = [
                 'title' => $data['title'] ?? null,
                 'author' => $this->extractAuthor($data['authors'] ?? []),
                 'year' => $this->extractYear($data['publish_date'] ?? null),
-                'description' => $data['description'] ?? null,
+                'description' => $data['description']["value"] ?? null,
                 'isbn' => $isbn,
             ];
+
+            $coverUrl = $this->getCoverUrl($isbn);
+            if ($coverUrl) {
+                $bookData['cover_url'] = $coverUrl;
+            }
+
+            return $bookData;
         } catch (\Exception $e) {
             return null;
         }
+    }
+
+    private function getCoverUrl(string $isbn): ?string
+    {
+        $coverUrl = "https://covers.openlibrary.org/b/isbn/{$isbn}-L.jpg";
+        
+        try {
+            $response = Http::timeout(3)->head($coverUrl);
+            if ($response->successful()) {
+                return $coverUrl;
+            }
+        } catch (\Exception $e) {
+        }
+        
+        return null;
     }
 
     private function extractAuthor(array $authors): ?string

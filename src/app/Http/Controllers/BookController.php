@@ -9,6 +9,7 @@ use App\Services\OpenLibraryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
 use Smalot\PdfParser\Parser;
 
 class BookController extends Controller
@@ -79,7 +80,21 @@ class BookController extends Controller
     {
         $this->authorize('create', Book::class);
         
-        $book = Book::create($request->validated());
+        $validated = $request->validated();
+        
+        if ($request->hasFile('cover_image')) {
+            $coverPath = $request->file('cover_image')->store('covers', 'public');
+            $validated['cover_path'] = $coverPath;
+        }
+        
+        if ($request->hasFile('pdf_file')) {
+            $pdfPath = $request->file('pdf_file')->store('pdfs', 'private');
+            $validated['pdf_path'] = $pdfPath;
+        }
+        
+        unset($validated['cover_image'], $validated['pdf_file']);
+        
+        $book = Book::create($validated);
         
         $this->invalidateBooksCache();
 
@@ -93,6 +108,36 @@ class BookController extends Controller
     {
         $bookData = $book->toArray();
         
+        $user = null;
+        $token = request()->bearerToken();
+        if ($token) {
+            $personalAccessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+            if ($personalAccessToken) {
+                $user = $personalAccessToken->tokenable;
+            }
+        }
+        
+        if ($user) {
+            $userLoan = $book->loans()
+                ->where('user_id', $user->id)
+                ->where(function($query) {
+                    $query->whereNull('returned_at')
+                          ->orWhere('returned_at', '');
+                })
+                ->first();
+            
+            $bookData['is_borrowed_by_user'] = $userLoan ? true : false;
+            $bookData['user_loan'] = $userLoan ? [
+                'id' => $userLoan->id,
+                'borrowed_at' => $userLoan->borrowed_at,
+                'due_at' => $userLoan->due_at,
+                'is_overdue' => $userLoan->due_at < now(),
+            ] : null;
+        } else {
+            $bookData['is_borrowed_by_user'] = false;
+            $bookData['user_loan'] = null;
+        }
+        
         return response()->json([
             'data' => $bookData,
             'message' => 'Book retrieved successfully'
@@ -103,19 +148,85 @@ class BookController extends Controller
     {
         $this->authorize('update', $book);
         
-        $book->update($request->validated());
+        $validated = $request->validated();
+        
+        if ($request->hasFile('cover_image')) {
+            if ($book->cover_path && \Storage::disk('public')->exists($book->cover_path)) {
+                \Storage::disk('public')->delete($book->cover_path);
+            }
+            
+            $coverPath = $request->file('cover_image')->store('covers', 'public');
+            $validated['cover_path'] = $coverPath;
+        }
+        
+        if ($request->hasFile('pdf_file')) {
+            if ($book->pdf_path && \Storage::disk('private')->exists($book->pdf_path)) {
+                \Storage::disk('private')->delete($book->pdf_path);
+            }
+            
+            $pdfPath = $request->file('pdf_file')->store('pdfs', 'private');
+            $validated['pdf_path'] = $pdfPath;
+        }
+        
+        unset($validated['cover_image'], $validated['pdf_file']);
+        
+        $book->update($validated);
         
         $this->invalidateBooksCache();
 
         return response()->json([
-            'data' => $book,
+            'data' => $book->fresh(),
             'message' => 'Book updated successfully'
+        ]);
+    }
+
+    public function viewPdf(Book $book): \Symfony\Component\HttpFoundation\BinaryFileResponse
+    {
+        $user = null;
+        $token = request()->bearerToken();
+        if ($token) {
+            $personalAccessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+            if ($personalAccessToken) {
+                $user = $personalAccessToken->tokenable;
+            }
+        }
+
+        if (!$user) {
+            abort(401, 'Authentication required');
+        }
+
+        $hasActiveSubscription = $user->hasActiveSubscription();
+        
+        $userLoan = $book->loans()
+            ->where('user_id', $user->id)
+            ->where(function($query) {
+                $query->whereNull('returned_at')
+                      ->orWhere('returned_at', '');
+            })
+            ->first();
+        
+        $isBorrowedByUser = $userLoan ? true : false;
+        
+        if (!$hasActiveSubscription && !$isBorrowedByUser) {
+            abort(403, 'Potrebna je aktivna pretplata ili pozajmljena knjiga za čitanje celih knjiga');
+        }
+
+        if (!$book->pdf_path || !\Storage::disk('private')->exists($book->pdf_path)) {
+            abort(404, 'PDF fajl nije dostupan');
+        }
+
+        $filePath = \Storage::disk('private')->path($book->pdf_path);
+        
+        return response()->file($filePath, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $book->title . '.pdf"',
+            'Cache-Control' => 'private, max-age=3600',
         ]);
     }
 
     public function search(Request $request): JsonResponse
     {
-        $query = $request->get('query');
+        $query = $request->get('query') ?? $request->get('q');
         
         if (empty($query)) {
             return response()->json([
@@ -176,11 +287,11 @@ class BookController extends Controller
             'pdf.max' => 'PDF size must not exceed 20MB.'
         ]);
 
-        if ($book->pdf_path && \Storage::disk('public')->exists($book->pdf_path)) {
-            \Storage::disk('public')->delete($book->pdf_path);
+        if ($book->pdf_path && \Storage::disk('private')->exists($book->pdf_path)) {
+            \Storage::disk('private')->delete($book->pdf_path);
         }
 
-        $pdfPath = $request->file('pdf')->store('pdfs', 'public');
+        $pdfPath = $request->file('pdf')->store('pdfs', 'private');
         $book->update(['pdf_path' => $pdfPath]);
 
         return response()->json([
@@ -191,12 +302,88 @@ class BookController extends Controller
 
     public function readBook(Book $book): JsonResponse
     {
-        if (!$book->pdf_path || !\Storage::disk('public')->exists($book->pdf_path)) {
-            abort(404, 'Book content not found');
+        if (!$book->pdf_path || !\Storage::disk('private')->exists($book->pdf_path)) {
+            $user = null;
+            $token = request()->bearerToken();
+            if ($token) {
+                $personalAccessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+                if ($personalAccessToken) {
+                    $user = $personalAccessToken->tokenable;
+                }
+            }
+
+            if (!$user) {
+                abort(401, 'Authentication required');
+            }
+
+            $hasActiveSubscription = $user->hasActiveSubscription();
+            
+            $userLoan = $book->loans()
+                ->where('user_id', $user->id)
+                ->where(function($query) {
+                    $query->whereNull('returned_at')
+                          ->orWhere('returned_at', '');
+                })
+                ->first();
+            
+            $isBorrowedByUser = $userLoan ? true : false;
+            
+            if (!$hasActiveSubscription && !$isBorrowedByUser) {
+                abort(403, 'Potrebna je aktivna pretplata ili pozajmljena knjiga za čitanje celih knjiga');
+            }
+
+            $fullContent = "Naslov: {$book->title}\n\n";
+            $fullContent .= "Autor: {$book->author}\n\n";
+            $fullContent .= "Godina: {$book->year}\n\n";
+            $fullContent .= "Žanr: {$book->genre}\n\n";
+            $fullContent .= "Opis:\n" . ($book->description ?: 'Opis knjige nije dostupan.') . "\n\n";
+            $fullContent .= "Napomena: PDF sadržaj ove knjige nije dostupan. Ovo je osnovni pregled informacija o knjizi.";
+            
+            return response()->json([
+                'data' => [
+                    'book_id' => $book->id,
+                    'title' => $book->title,
+                    'total_pages' => 1,
+                    'content' => $fullContent,
+                    'has_subscription' => $hasActiveSubscription,
+                    'is_borrowed_by_user' => $isBorrowedByUser,
+                    'is_full_book' => true
+                ],
+                'message' => 'Book content retrieved successfully'
+            ]);
+        }
+
+        $user = null;
+        $token = request()->bearerToken();
+        if ($token) {
+            $personalAccessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+            if ($personalAccessToken) {
+                $user = $personalAccessToken->tokenable;
+            }
+        }
+
+        if (!$user) {
+            abort(401, 'Authentication required');
+        }
+
+        $hasActiveSubscription = $user->hasActiveSubscription();
+        
+        $userLoan = $book->loans()
+            ->where('user_id', $user->id)
+            ->where(function($query) {
+                $query->whereNull('returned_at')
+                      ->orWhere('returned_at', '');
+            })
+            ->first();
+        
+        $isBorrowedByUser = $userLoan ? true : false;
+        
+        if (!$hasActiveSubscription && !$isBorrowedByUser) {
+            abort(403, 'Potrebna je aktivna pretplata ili pozajmljena knjiga za čitanje celih knjiga');
         }
 
         try {
-            $filePath = \Storage::disk('public')->path($book->pdf_path);
+            $filePath = \Storage::disk('private')->path($book->pdf_path);
             $parser = new Parser();
             $pdf = $parser->parseFile($filePath);
             $pages = $pdf->getPages();
@@ -216,7 +403,8 @@ class BookController extends Controller
                     'title' => $book->title,
                     'total_pages' => $totalPages,
                     'content' => $fullContent,
-                    'has_subscription' => true,
+                    'has_subscription' => $hasActiveSubscription,
+                    'is_borrowed_by_user' => $isBorrowedByUser,
                     'is_full_book' => true
                 ],
                 'message' => 'Book content retrieved successfully'
@@ -236,7 +424,8 @@ class BookController extends Controller
                     'title' => $book->title,
                     'total_pages' => 50,
                     'content' => $fullContent,
-                    'has_subscription' => true,
+                    'has_subscription' => $hasActiveSubscription,
+                    'is_borrowed_by_user' => $isBorrowedByUser,
                     'is_full_book' => true
                 ],
                 'message' => 'Book content retrieved successfully'
@@ -246,12 +435,32 @@ class BookController extends Controller
 
     public function previewBook(Book $book): JsonResponse
     {
-        if (!$book->pdf_path || !\Storage::disk('public')->exists($book->pdf_path)) {
-            abort(404, 'Book content not found');
+        if (!$book->pdf_path || !\Storage::disk('private')->exists($book->pdf_path)) {
+            $previewContent = [
+                'book_id' => $book->id,
+                'title' => $book->title,
+                'author' => $book->author,
+                'year' => $book->year,
+                'genre' => $book->genre,
+                'description' => $book->description,
+                'preview_pages' => [
+                    [
+                        'page_number' => 1,
+                        'content' => "Naslov: {$book->title}\n\nAutor: {$book->author}\n\nGodina: {$book->year}\n\nŽanr: {$book->genre}\n\nOpis:\n" . ($book->description ?: 'Opis knjige nije dostupan.')
+                    ]
+                ],
+                'total_pages' => 1,
+                'is_preview' => true
+            ];
+            
+            return response()->json([
+                'data' => $previewContent,
+                'message' => 'Book preview retrieved successfully'
+            ]);
         }
 
         try {
-        $filePath = \Storage::disk('public')->path($book->pdf_path);
+        $filePath = \Storage::disk('private')->path($book->pdf_path);
             $parser = new Parser();
             $pdf = $parser->parseFile($filePath);
             $pages = $pdf->getPages();
@@ -317,7 +526,7 @@ class BookController extends Controller
         $pageNumber = $request->get('page', 1);
         $maxPreviewPages = 3;
         
-        if (!$book->pdf_path || !\Storage::disk('public')->exists($book->pdf_path)) {
+        if (!$book->pdf_path || !\Storage::disk('private')->exists($book->pdf_path)) {
             abort(404, 'Book content not found');
         }
 
@@ -325,7 +534,7 @@ class BookController extends Controller
         $hasActiveSubscription = $user && $user->hasActiveSubscription();
         
         try {
-            $filePath = \Storage::disk('public')->path($book->pdf_path);
+            $filePath = \Storage::disk('private')->path($book->pdf_path);
             $parser = new Parser();
             $pdf = $parser->parseFile($filePath);
             $pages = $pdf->getPages();
@@ -574,10 +783,42 @@ class BookController extends Controller
             ], 404);
         }
 
+        if (isset($bookData['cover_url'])) {
+            $coverPath = $this->downloadCoverImage($bookData['cover_url'], $isbn);
+            if ($coverPath) {
+                $bookData['cover_path'] = $coverPath;
+                $bookData['cover_url'] = \Storage::disk('public')->url($coverPath);
+            }
+            unset($bookData['cover_url']); // Ukloni originalni URL
+        }
+
         return response()->json([
             'success' => true,
             'data' => $bookData,
             'message' => 'Book data retrieved successfully',
         ]);
+    }
+
+    private function downloadCoverImage(string $coverUrl, string $isbn): ?string
+    {
+        try {
+            $response = Http::timeout(10)->get($coverUrl);
+            
+            if (!$response->successful()) {
+                return null;
+            }
+
+            $imageContent = $response->body();
+            $extension = 'jpg';
+            
+            $filename = 'cover_' . $isbn . '_' . time() . '.' . $extension;
+            $path = 'covers/' . $filename;
+            
+            \Storage::disk('public')->put($path, $imageContent);
+            
+            return $path;
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 }

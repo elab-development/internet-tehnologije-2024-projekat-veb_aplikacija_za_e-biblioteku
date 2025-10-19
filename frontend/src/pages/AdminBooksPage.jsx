@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { bookService } from '../services/bookService'
 import { useAuth } from '../hooks/useAuth'
 import toast from 'react-hot-toast'
 
 const AdminBooksPage = () => {
   const { isAdmin } = useAuth()
+  const navigate = useNavigate()
   const [books, setBooks] = useState([])
   const [loading, setLoading] = useState(true)
   const [pagination, setPagination] = useState({})
@@ -124,8 +125,8 @@ const AdminBooksPage = () => {
 
       {/* Actions */}
       <div className="card mb-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="flex flex-col md:flex-row gap-4 flex-1">
+        <div className="space-y-4">
+          <div className="flex flex-col lg:flex-row gap-4">
             <input
               type="text"
               placeholder="Pretražite knjige..."
@@ -135,21 +136,30 @@ const AdminBooksPage = () => {
             />
             
             <select
-              className="input-field"
+              className="input-field min-w-[200px]"
               value={filters.genre}
               onChange={(e) => handleFilterChange('genre', e.target.value)}
             >
               <option value="">Svi žanrovi</option>
-              <option value="fiction">Fikcija</option>
-              <option value="non-fiction">Non-fikcija</option>
-              <option value="science">Nauka</option>
-              <option value="history">Istorija</option>
-              <option value="biography">Biografija</option>
-              <option value="poetry">Poezija</option>
+              <option value="Autobiography">Autobiografija</option>
+              <option value="Crime">Krimi</option>
+              <option value="Dystopian Fiction">Distopijska fikcija</option>
+              <option value="Fantasy">Fantazija</option>
+              <option value="Fiction">Fikcija</option>
+              <option value="Historical Fiction">Istorijska fikcija</option>
+              <option value="Magical Realism">Magični realizam</option>
+              <option value="Mystery">Misterija</option>
+              <option value="Non-fiction">Ne-fikcija</option>
+              <option value="Philosophy">Filozofija</option>
+              <option value="Romance">Romansa</option>
+              <option value="Satire">Satira</option>
+              <option value="Science Fiction">Naučna fantastika</option>
+              <option value="Thriller">Triler</option>
+              <option value="Young Adult">Mladi odrasli</option>
             </select>
             
             <select
-              className="input-field"
+              className="input-field min-w-[150px]"
               value={filters.sort_by}
               onChange={(e) => handleFilterChange('sort_by', e.target.value)}
             >
@@ -160,26 +170,28 @@ const AdminBooksPage = () => {
             </select>
             
             <select
-              className="input-field"
+              className="input-field min-w-[120px]"
               value={filters.sort_order}
               onChange={(e) => handleFilterChange('sort_order', e.target.value)}
             >
               <option value="asc">Rastući</option>
               <option value="desc">Opadajući</option>
             </select>
-            
+          </div>
+          
+          <div className="flex flex-wrap gap-2 justify-between">
             <button onClick={applyFilters} className="btn-secondary">
               Primeni filtere
             </button>
-          </div>
-          
-          <div className="flex gap-2">
-            <button onClick={handleExport} className="btn-secondary">
-              Preuzmi CSV
-            </button>
-            <Link to="/admin/books/create" className="btn-primary">
-              Dodaj knjigu
-            </Link>
+            
+            <div className="flex gap-2">
+              <button onClick={handleExport} className="btn-secondary">
+                Preuzmi CSV
+              </button>
+              <Link to="/admin/books/create" className="btn-primary">
+                Dodaj knjigu
+              </Link>
+            </div>
           </div>
         </div>
       </div>
@@ -203,6 +215,7 @@ const AdminBooksPage = () => {
                   <th className="text-left py-3 px-4 text-gothic-300 font-medium">Slika</th>
                   <th className="text-left py-3 px-4 text-gothic-300 font-medium">Naslov</th>
                   <th className="text-left py-3 px-4 text-gothic-300 font-medium">Autor</th>
+                  <th className="text-left py-3 px-4 text-gothic-300 font-medium">Žanr</th>
                   <th className="text-left py-3 px-4 text-gothic-300 font-medium">Godina</th>
                   <th className="text-left py-3 px-4 text-gothic-300 font-medium">ISBN</th>
                   <th className="text-left py-3 px-4 text-gothic-300 font-medium">Datum dodavanja</th>
@@ -211,7 +224,11 @@ const AdminBooksPage = () => {
               </thead>
               <tbody>
                 {books.map((book) => (
-                  <tr key={book.id} className="border-b border-gothic-700 last:border-b-0 hover:bg-gothic-800/50">
+                  <tr 
+                    key={book.id} 
+                    className="border-b border-gothic-700 last:border-b-0 hover:bg-gothic-800/50 cursor-pointer"
+                    onClick={() => navigate(`/books/${book.id}`)}
+                  >
                     <td className="py-3 px-4">
                       <div className="w-12 h-16 bg-gothic-800 rounded overflow-hidden">
                         {book.cover_url ? (
@@ -229,6 +246,7 @@ const AdminBooksPage = () => {
                     </td>
                     <td className="py-3 px-4 text-gothic-100 font-medium">{book.title}</td>
                     <td className="py-3 px-4 text-gothic-200">{book.author}</td>
+                    <td className="py-3 px-4 text-gothic-200">{book.genre || '-'}</td>
                     <td className="py-3 px-4 text-gothic-200">{book.year || '-'}</td>
                     <td className="py-3 px-4 text-gothic-200 font-mono text-sm">{book.isbn || '-'}</td>
                     <td className="py-3 px-4 text-gothic-200 text-sm">

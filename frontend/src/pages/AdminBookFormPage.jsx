@@ -38,7 +38,7 @@ const AdminBookFormPage = () => {
     setLoading(true)
     try {
       const response = await bookService.getBook(id)
-      if (response.success) {
+      if (response.data) {
         const book = response.data
         setFormData({
           title: book.title || '',
@@ -127,7 +127,9 @@ const AdminBookFormPage = () => {
         response = await bookService.createBook(formDataToSend)
       }
 
-      if (response.success) {
+      console.log('Update response:', response) 
+
+      if (response.data || response.message) {
         toast.success(`Knjiga je uspešno ${isEditMode ? 'ažurirana' : 'dodana'}!`)
         navigate('/admin/books')
       } else {

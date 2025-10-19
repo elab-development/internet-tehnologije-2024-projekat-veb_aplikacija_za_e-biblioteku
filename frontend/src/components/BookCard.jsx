@@ -32,6 +32,12 @@ const BookCard = ({ book }) => {
             {book.author}
           </p>
           
+          {book.genre && (
+            <p className="text-gothic-400 text-sm mb-2">
+              {book.genre}
+            </p>
+          )}
+          
           {book.year && (
             <p className="text-gothic-400 text-sm mb-3">
               {book.year}

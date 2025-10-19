@@ -79,23 +79,21 @@ const BookDetailsPage = () => {
       return
     }
 
-    if (!hasActiveSubscription) {
-      toast.error('Potrebna je aktivna pretplata za čitanje celih knjiga')
+    if (!hasActiveSubscription && !book?.is_borrowed_by_user) {
+      toast.error('Potrebna je aktivna pretplata ili pozajmljena knjiga za čitanje celih knjiga')
       return
     }
 
     try {
-      const response = await bookService.readBook(id)
-      if (response.data) {
-        // For now, just show the content in a modal or new page
-        // In a real app, you'd implement a proper PDF reader
-        setPreviewContent(response.data)
-        setShowPreview(true)
-      } else {
-        toast.error('Greška pri učitavanju knjige')
-      }
+      const pdfBlob = await bookService.viewPdf(id)
+      const pdfUrl = URL.createObjectURL(pdfBlob)
+      
+      window.open(pdfUrl, '_blank')
+      
+      toast.success('PDF je otvoren u novom tabu')
     } catch (error) {
-      toast.error('Greška pri učitavanju knjige')
+      console.error('Error reading book:', error)
+      toast.error(error.response?.data?.message || 'Greška pri čitanju knjige')
     }
   }
 
@@ -179,6 +177,13 @@ const BookDetailsPage = () => {
               <p className="text-gothic-100 text-lg">{book.author}</p>
             </div>
 
+            {book.genre && (
+              <div>
+                <span className="text-gothic-400 text-sm">Žanr:</span>
+                <p className="text-gothic-100">{book.genre}</p>
+              </div>
+            )}
+
             {book.year && (
               <div>
                 <span className="text-gothic-400 text-sm">Godina:</span>
@@ -234,14 +239,23 @@ const BookDetailsPage = () => {
                 onClick={handleReadFull}
                 className="btn-primary w-full bg-accent-600 hover:bg-accent-700"
               >
-                Čitaj celu knjigu
+                Otvori PDF knjigu
               </button>
             )}
 
-            {isAuthenticated && !hasActiveSubscription && (
+            {isAuthenticated && !hasActiveSubscription && book?.is_borrowed_by_user && (
+              <button
+                onClick={handleReadFull}
+                className="btn-primary w-full bg-green-600 hover:bg-green-700"
+              >
+                Otvori pozajmljenu PDF knjigu
+              </button>
+            )}
+
+            {isAuthenticated && !hasActiveSubscription && !book?.is_borrowed_by_user && (
               <div className="text-center">
                 <p className="text-gothic-400 text-sm mb-2">
-                  Za čitanje celih knjiga potrebna je pretplata
+                  Za čitanje PDF knjige potrebno ju je pozajmiti
                 </p>
                 <button
                   onClick={() => navigate('/subscription')}
@@ -272,9 +286,22 @@ const BookDetailsPage = () => {
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
               <div className="prose prose-invert max-w-none">
-                <pre className="whitespace-pre-wrap text-gothic-100 leading-relaxed">
-                  {previewContent.content}
-                </pre>
+                {previewContent.preview_pages ? (
+                  previewContent.preview_pages.map((page, index) => (
+                    <div key={index} className="mb-6">
+                      <div className="text-sm text-gothic-400 mb-2">
+                        Stranica {page.page_number}
+                      </div>
+                      <pre className="whitespace-pre-wrap text-gothic-100 leading-relaxed">
+                        {page.content}
+                      </pre>
+                    </div>
+                  ))
+                ) : (
+                  <pre className="whitespace-pre-wrap text-gothic-100 leading-relaxed">
+                    {previewContent.content}
+                  </pre>
+                )}
               </div>
             </div>
           </div>

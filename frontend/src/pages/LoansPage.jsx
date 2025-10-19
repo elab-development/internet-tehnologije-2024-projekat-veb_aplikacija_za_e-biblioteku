@@ -71,31 +71,6 @@ const LoansPage = () => {
     ))
   }
 
-  const handleExport = async () => {
-    try {
-      const params = {
-        only_active: searchParams.get('only_active') || '',
-        user_id: isAdmin ? searchParams.get('user_id') || '' : undefined,
-      }
-
-      const blob = await loanService.exportLoans(params)
-      
-      // Create download link
-      const url = window.URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `pozajmice_${new Date().toISOString().split('T')[0]}.csv`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      window.URL.revokeObjectURL(url)
-      
-      toast.success('CSV fajl je preuzet')
-    } catch (error) {
-      toast.error('Greška pri preuzimanju CSV fajla')
-    }
-  }
-
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
@@ -151,14 +126,6 @@ const LoansPage = () => {
           )}
 
           <div className="flex items-end">
-            {isAdmin && (
-              <button
-                onClick={handleExport}
-                className="btn-secondary w-full"
-              >
-                Preuzmi CSV
-              </button>
-            )}
           </div>
         </div>
       </div>

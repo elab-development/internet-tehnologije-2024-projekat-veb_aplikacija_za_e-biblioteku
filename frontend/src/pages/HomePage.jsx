@@ -59,7 +59,7 @@ const HomePage = () => {
               <div className="w-32 h-32 bg-accent-gradient rounded-full flex items-center justify-center mx-auto mb-4">
                 <span className="text-white font-serif text-4xl">📚</span>
               </div>
-              <p className="text-gothic-300 text-lg">Tisuće knjiga na dohvat ruke</p>
+              <p className="text-gothic-300 text-lg">Milioni knjiga na dohvat ruke</p>
             </div>
           </div>
         </div>

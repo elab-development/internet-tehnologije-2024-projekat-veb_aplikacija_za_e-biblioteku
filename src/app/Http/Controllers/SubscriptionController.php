@@ -81,7 +81,7 @@ class SubscriptionController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'active' => $subscription->active,
+                'active' => $subscription->isActive(),
                 'plan' => $subscription->plan,
                 'starts_at' => $subscription->starts_at,
                 'ends_at' => $subscription->ends_at,

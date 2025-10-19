@@ -20,6 +20,10 @@ const BooksPage = () => {
     fetchBooks()
   }, [searchParams])
 
+  useEffect(() => {
+    fetchBooks()
+  }, [filters])
+
   const fetchBooks = async () => {
     setLoading(true)
     try {
@@ -111,12 +115,21 @@ const BooksPage = () => {
               onChange={(e) => handleFilterChange('genre', e.target.value)}
             >
               <option value="">Svi žanrovi</option>
-              <option value="fiction">Fikcija</option>
-              <option value="non-fiction">Non-fikcija</option>
-              <option value="science">Nauka</option>
-              <option value="history">Istorija</option>
-              <option value="biography">Biografija</option>
-              <option value="poetry">Poezija</option>
+              <option value="Autobiography">Autobiografija</option>
+              <option value="Crime">Krimi</option>
+              <option value="Dystopian Fiction">Distopijska fikcija</option>
+              <option value="Fantasy">Fantazija</option>
+              <option value="Fiction">Fikcija</option>
+              <option value="Historical Fiction">Istorijska fikcija</option>
+              <option value="Magical Realism">Magični realizam</option>
+              <option value="Mystery">Misterija</option>
+              <option value="Non-fiction">Ne-fikcija</option>
+              <option value="Philosophy">Filozofija</option>
+              <option value="Romance">Romansa</option>
+              <option value="Satire">Satira</option>
+              <option value="Science Fiction">Naučna fantastika</option>
+              <option value="Thriller">Triler</option>
+              <option value="Young Adult">Mladi odrasli</option>
             </select>
           </div>
 

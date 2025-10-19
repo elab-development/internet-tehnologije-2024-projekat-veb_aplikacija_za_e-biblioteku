@@ -32,6 +32,6 @@ class DatabaseSeeder extends Seeder
 
         User::factory(8)->create();
 
-        Book::factory(35)->create();
+        $this->call(RealBooksSeeder::class);
     }
 }

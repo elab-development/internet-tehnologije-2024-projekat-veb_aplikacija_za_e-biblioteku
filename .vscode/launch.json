@@ -1,0 +1,12 @@
+{
+    "name": "PHP Debug",
+    "type": "php",
+    "request": "launch",
+    "port": 9003,
+    "pathMappings": {
+        "/var/www/html": "${workspaceFolder}/src"
+    },
+    "ignore": [
+        "**/vendor/**/*.php"
+    ]
+}

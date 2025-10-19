@@ -151,7 +151,7 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Activity
       <div className="card mt-8">
         <h2 className="text-xl font-serif font-semibold text-gothic-50 mb-4">
           Nedavna aktivnost
@@ -162,7 +162,7 @@ const ProfilePage = () => {
             Aktivnost će biti dostupna uskoro...
           </p>
         </div>
-      </div>
+      </div> */}
     </div>
   )
 }

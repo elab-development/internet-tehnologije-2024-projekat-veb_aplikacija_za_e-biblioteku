@@ -18,7 +18,10 @@ class BookUpdateRequest extends FormRequest
             'author' => 'sometimes|required|string|max:255',
             'year' => 'sometimes|required|integer|min:0',
             'genre' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:2000',
             'isbn' => 'nullable|string|max:20|unique:books,isbn,' . $this->route('book')->id,
+            'cover_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'pdf_file' => 'nullable|file|mimes:pdf|max:20480',
         ];
     }
 

@@ -145,7 +145,7 @@ const RegisterPage = () => {
             </button>
           </div>
 
-          <div className="text-center">
+          <div className="text-center space-y-3">
             <p className="text-sm text-gothic-400">
               Već imate nalog?{' '}
               <Link
@@ -155,6 +155,16 @@ const RegisterPage = () => {
                 Prijavite se ovde
               </Link>
             </p>
+            
+            <div className="border-t border-gothic-600 pt-3">
+              <button
+                type="button"
+                onClick={() => navigate('/books')}
+                className="text-sm text-gothic-300 hover:text-gothic-100 transition-colors duration-200"
+              >
+                Nastavi kao neulogovan korisnik
+              </button>
+            </div>
           </div>
         </form>
       </div>

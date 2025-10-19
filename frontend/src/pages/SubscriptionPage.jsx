@@ -27,7 +27,7 @@ const SubscriptionPage = () => {
       }
 
       if (historyResponse.success) {
-        setSubscriptionHistory(historyResponse.data.data)
+        setSubscriptionHistory(historyResponse.data)
       }
     } catch (error) {
       toast.error('Greška pri učitavanju podataka o pretplati')
@@ -110,19 +110,23 @@ const SubscriptionPage = () => {
                     <span className="text-gothic-100 capitalize">{subscriptionStatus.plan}</span>
                   </div>
                   
-                  <div className="flex items-center justify-between">
-                    <span className="text-gothic-400">Počela:</span>
-                    <span className="text-gothic-100">
-                      {new Date(subscriptionStatus.starts_at).toLocaleDateString('sr-RS')}
-                    </span>
-                  </div>
+                  {subscriptionStatus.starts_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gothic-400">Počela:</span>
+                      <span className="text-gothic-100">
+                        {new Date(subscriptionStatus.starts_at).toLocaleDateString('sr-RS')}
+                      </span>
+                    </div>
+                  )}
                   
-                  <div className="flex items-center justify-between">
-                    <span className="text-gothic-400">Istiće:</span>
-                    <span className="text-gothic-100">
-                      {new Date(subscriptionStatus.ends_at).toLocaleDateString('sr-RS')}
-                    </span>
-                  </div>
+                  {subscriptionStatus.ends_at && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gothic-400">Istiće:</span>
+                      <span className="text-gothic-100">
+                        {new Date(subscriptionStatus.ends_at).toLocaleDateString('sr-RS')}
+                      </span>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -193,7 +197,7 @@ const SubscriptionPage = () => {
       </div>
 
       {/* Subscription History */}
-      {subscriptionHistory.length > 0 && (
+      {subscriptionHistory && subscriptionHistory.length > 0 && (
         <div className="card mt-8">
           <h2 className="text-xl font-serif font-semibold text-gothic-50 mb-4">
             Istorija pretplata
@@ -205,19 +209,19 @@ const SubscriptionPage = () => {
                 <tr className="border-b border-gothic-700">
                   <th className="text-left py-3 px-4 text-gothic-300 font-medium">Plan</th>
                   <th className="text-left py-3 px-4 text-gothic-300 font-medium">Počela</th>
-                  <th className="text-left py-3 px-4 text-gothic-300 font-medium">Istekla</th>
+                  <th className="text-left py-3 px-4 text-gothic-300 font-medium">Ističe</th>
                   <th className="text-left py-3 px-4 text-gothic-300 font-medium">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {subscriptionHistory.map((subscription) => (
+                {subscriptionHistory?.map((subscription) => (
                   <tr key={subscription.id} className="border-b border-gothic-700 last:border-b-0">
                     <td className="py-3 px-4 text-gothic-100 capitalize">{subscription.plan}</td>
                     <td className="py-3 px-4 text-gothic-100">
-                      {new Date(subscription.starts_at).toLocaleDateString('sr-RS')}
+                      {subscription.starts_at ? new Date(subscription.starts_at).toLocaleDateString('sr-RS') : '-'}
                     </td>
                     <td className="py-3 px-4 text-gothic-100">
-                      {new Date(subscription.ends_at).toLocaleDateString('sr-RS')}
+                      {subscription.ends_at ? new Date(subscription.ends_at).toLocaleDateString('sr-RS') : '-'}
                     </td>
                     <td className="py-3 px-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${

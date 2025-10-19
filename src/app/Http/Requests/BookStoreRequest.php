@@ -18,7 +18,10 @@ class BookStoreRequest extends FormRequest
             'author' => 'required|string|max:255',
             'year' => 'required|integer|min:0',
             'genre' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:2000',
             'isbn' => 'nullable|string|max:20|unique:books,isbn',
+            'cover_image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+            'pdf_file' => 'nullable|file|mimes:pdf|max:20480',
         ];
     }
 

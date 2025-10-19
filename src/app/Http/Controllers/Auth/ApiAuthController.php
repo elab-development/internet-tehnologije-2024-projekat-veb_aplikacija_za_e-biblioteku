@@ -62,7 +62,7 @@ class ApiAuthController extends Controller
                     'plan' => $subscription->plan,
                     'starts_at' => $subscription->starts_at,
                     'ends_at' => $subscription->ends_at,
-                    'is_active' => $subscription->isActive(),
+                    'active' => $subscription->isActive(),
                 ] : null,
             ],
             'message' => 'User profile retrieved successfully'

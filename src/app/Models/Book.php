@@ -20,19 +20,19 @@ class Book extends Model
         'author',
         'year',
         'genre',
+        'description',
         'isbn',
         'cover_path',
         'pdf_path',
     ];
 
     /**
-     * The attributes that should be cast.
+     * The attributes that should be appended to the model's array form.
      *
-     * @var array<string, string>
+     * @var array<int, string>
      */
-    protected $casts = [
-        'year' => 'integer',
-        'deleted_at' => 'datetime',
+    protected $appends = [
+        'cover_url',
     ];
 
     /**
@@ -53,5 +53,10 @@ class Book extends Model
     public function getPdfUrlAttribute(): ?string
     {
         return $this->pdf_path ? asset('storage/' . $this->pdf_path) : null;
+    }
+
+    public function loans()
+    {
+        return $this->hasMany(Loan::class);
     }
 }

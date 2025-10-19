@@ -13,6 +13,7 @@ axiosInstance.interceptors.request.use(
   (config) => {
     // Prvo proveri localStorage, zatim Zustand store
     const token = localStorage.getItem('auth_token')
+    console.log('Request to:', config.url, 'Token:', token ? 'Present' : 'Missing', 'Token value:', token)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }

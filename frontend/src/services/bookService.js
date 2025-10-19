@@ -7,7 +7,7 @@ export const bookService = {
     
     if (params.page) queryParams.append('page', params.page)
     if (params.per_page) queryParams.append('per_page', params.per_page)
-    if (params.search) queryParams.append('search', params.search)
+    if (params.search) queryParams.append('q', params.search)
     if (params.genre) queryParams.append('genre', params.genre)
     if (params.sort_by) queryParams.append('sort_by', params.sort_by)
     if (params.sort_order) queryParams.append('sort_order', params.sort_order)
@@ -55,6 +55,13 @@ export const bookService = {
     return response.data
   },
 
+  viewPdf: async (id) => {
+    const response = await axiosInstance.get(`/books/${id}/pdf`, {
+      responseType: 'blob',
+    })
+    return response.data
+  },
+
   // Borrow a book
   borrowBook: async (id) => {
     const response = await axiosInstance.post(`/loans`, { book_id: id })
@@ -94,7 +101,7 @@ export const bookService = {
   exportBooks: async (params = {}) => {
     const queryParams = new URLSearchParams()
     
-    if (params.search) queryParams.append('search', params.search)
+    if (params.search) queryParams.append('q', params.search)
     if (params.genre) queryParams.append('genre', params.genre)
 
     const response = await axiosInstance.get(`/books/export.csv?${queryParams.toString()}`)
