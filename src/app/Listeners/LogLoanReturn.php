@@ -23,7 +23,7 @@ class LogLoanReturn
             'loan_id' => $loan->id,
             'user_id' => $loan->user_id,
             'book_id' => $loan->book_id,
-            'book_title' => $loan->book->title,
+            'book_title' => $loan->book?->title ?? 'Unknown',
             'borrowed_at' => $loan->borrowed_at,
             'returned_at' => $loan->returned_at,
             'loan_duration_days' => $loan->borrowed_at->diffInDays($loan->returned_at),
@@ -32,7 +32,7 @@ class LogLoanReturn
 
         AuditLog::log('returned', 'Loan', $loan->id, $loan->user_id, [
             'book_id' => $loan->book_id,
-            'book_title' => $loan->book->title,
+            'book_title' => $loan->book?->title ?? 'Unknown',
             'borrowed_at' => $loan->borrowed_at->toISOString(),
             'returned_at' => $loan->returned_at->toISOString(),
             'duration_days' => $loan->borrowed_at->diffInDays($loan->returned_at),

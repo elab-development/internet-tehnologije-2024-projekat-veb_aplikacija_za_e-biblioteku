@@ -28,7 +28,7 @@ export const loanService = {
 
   // Return a loan
   returnLoan: async (id) => {
-    const response = await axiosInstance.put(`/loans/${id}/return`)
+    const response = await axiosInstance.post(`/loans/${id}/return`)
     return response.data
   },
 
